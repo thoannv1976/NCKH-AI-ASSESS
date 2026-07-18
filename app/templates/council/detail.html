@@ -39,7 +39,11 @@
   </div>
   {% if grade_job.get('running') %}
     <span class="text-amber-600 font-semibold">⏳ Đang chấm... (bắt đầu {{ (grade_job.started_at or '')[:16] | replace('T',' ') }})</span>
-    <script>setTimeout(() => location.reload(), 4000)</script>
+    <form method="post" action="/council/submission/{{ sub.id }}/reset-grading" class="ml-auto"
+          onsubmit="return confirm('Hủy phiên chấm đang chạy và đặt lại hồ sơ? Dùng khi chấm bị treo (không dừng). Sau đó có thể bấm Chấm lại.')">
+      <button class="bg-red-600 hover:bg-red-700 text-white rounded-lg px-4 py-2 font-semibold">✕ Hủy / Đặt lại chấm treo</button>
+    </form>
+    <script>setTimeout(() => location.reload(), 5000)</script>
   {% else %}
     <form method="post" action="/council/submission/{{ sub.id }}/grade" class="ml-auto"
           onsubmit="return confirm('Chấm tự động hồ sơ này bằng AI theo rubric? (Không ảnh hưởng quyền sửa của nhóm SV trước hạn)')">
@@ -49,6 +53,7 @@
   {% endif %}
   {% if grade_job.get('error') %}<p class="w-full text-red-600">Lỗi chấm: {{ grade_job.error }}</p>{% endif %}
   {% if request.query_params.get('grading') %}<p class="w-full text-emerald-700">Đã bắt đầu chấm — trang sẽ tự cập nhật.</p>{% endif %}
+  {% if request.query_params.get('reset') %}<p class="w-full text-emerald-700">Đã đặt lại phiên chấm. Bấm “Chấm lại” để chấm mới.</p>{% endif %}
 </div>
 
 {% if scores %}

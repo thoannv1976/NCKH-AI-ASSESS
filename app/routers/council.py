@@ -143,6 +143,26 @@ def grade_one(sid: str, request: Request, user: dict = council_dep):
     return RedirectResponse(f"/council/submission/{sid}?grading=started", status_code=303)
 
 
+@router.post("/submission/{sid}/reset-grading")
+def reset_grading_one(sid: str, request: Request, user: dict = council_dep):
+    """Hủy/đặt lại NGAY phiên chấm của MỘT công trình bị treo (không chờ ngưỡng 15 phút).
+
+    Dùng khi chấm chạy mãi không dừng (thread nền trên Cloud Run bị thu hồi). Xóa cờ
+    running, khôi phục trạng thái trước khi chấm; điểm/nội dung không bị mất, có thể chấm lại.
+    """
+    store = request.app.state.store
+    sub = store.get("submissions", sid)
+    if not sub:
+        raise HTTPException(404)
+    job = sub.get("grade_job") or {}
+    patch = {"grade_job": {**job, "running": False, "error": "Đã hủy/đặt lại thủ công"}}
+    if sub.get("status") == "grading":
+        patch["status"] = job.get("prev_status") or "submitted"
+    store.patch("submissions", sid, patch)
+    audit.log(store, user, "reset_grading_one", f"submissions/{sid}", note="Đặt lại phiên chấm treo (thủ công)")
+    return RedirectResponse(f"/council/submission/{sid}?reset=1", status_code=303)
+
+
 @router.get("/submission/{sid}/download.zip")
 def download_submission(sid: str, request: Request, user: dict = council_dep):
     """Tải toàn bộ sản phẩm + minh chứng của một giảng viên (ZIP, theo luồng)."""

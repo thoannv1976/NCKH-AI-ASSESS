@@ -46,6 +46,25 @@ def test_grade_blocked_only_when_actively_running(client, store):
     assert client.post(f"/council/submission/{sid}/grade", follow_redirects=False).status_code == 400
 
 
+def test_reset_grading_one_forces_reset_even_if_fresh(client, store):
+    """Nút gỡ kẹt từng công trình: đặt lại NGAY dù job mới chạy (< ngưỡng 15 phút)."""
+    sid = _stuck_sub(store, "u-gv1", minutes=1, prev="locked")  # mới chạy, chưa 'stale'
+    login(client, "hd@dainam.edu.vn")
+    r = client.post(f"/council/submission/{sid}/reset-grading", follow_redirects=False)
+    assert r.status_code == 303
+    sub = store.get("submissions", sid)
+    assert sub["grade_job"]["running"] is False
+    assert sub["status"] == "locked"           # khôi phục prev_status
+    # Sau khi đặt lại, chấm lại được (không còn bị chặn)
+    assert client.post(f"/council/submission/{sid}/grade", follow_redirects=False).status_code == 303
+
+
+def test_reset_grading_one_forbidden_for_lecturer(client, store):
+    sid = _stuck_sub(store, minutes=1)
+    login(client, "gv001@dainam.edu.vn")
+    assert client.post(f"/council/submission/{sid}/reset-grading", follow_redirects=False).status_code == 403
+
+
 def test_reset_grading_forbidden_for_lecturer(client):
     login(client, "gv001@dainam.edu.vn")
     assert client.post("/admin/reset-grading", follow_redirects=False).status_code == 403
