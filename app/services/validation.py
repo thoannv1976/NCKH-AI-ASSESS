@@ -8,7 +8,7 @@ from pathlib import Path
 import httpx
 
 from app.config import ALLOWED_EXTENSIONS, MAX_FILE_SIZE
-from app.rubric import graded_parts, rubric_for
+from app.rubric import upload_part_map
 
 # Phần A = Thông tin chung của công trình/chuyên đề NCKH sinh viên.
 PART_A_REQUIRED = ["ten_cong_trinh", "loai", "ho_ten", "ma_gv", "khoa_bo_mon"]
@@ -80,22 +80,18 @@ def completeness(store, submission: dict) -> dict:
     chứng chỉ bắt buộc khi rubric đặt evidence_required=true.
     """
     items = store.find("submission_items", submission_id=submission["id"])
-    rubric = rubric_for(store, submission)
-    evidence_required = rubric.get("evidence_required", False)
+    part_map = upload_part_map(store, submission)
     result: dict = {}
     a_ok, a_missing = part_a_complete(submission.get("part_a"))
     result["A"] = {"ok": a_ok, "missing": a_missing}
     warnings: list[str] = []
-    for part in graded_parts(rubric):
+    for part, meta in part_map.items():
+        evidence_required = meta["rubric"].get("evidence_required", False)
         prods = [i for i in items if i["part"] == part and i["kind"] == "product"]
         evs = [i for i in items if i["part"] == part and i["kind"] == "evidence"]
         need_evidence = evidence_required and part != "G"
         ok = bool(prods) and (bool(evs) or not need_evidence)
         result[part] = {"products": len(prods), "evidences": len(evs), "ok": ok}
-        if not prods:
-            warnings.append(f"Phần {part}: chưa có sản phẩm/tài liệu")
-        elif need_evidence and not evs:
-            warnings.append(f"Phần {part}: chưa có minh chứng (sẽ bị trừ tối đa 50% điểm tiêu chí liên quan)")
         for it in prods + evs:
             if it.get("type") == "link" and not it.get("link_ok", True):
                 warnings.append(f"Phần {part}: liên kết '{it.get('original_name') or it.get('url')}' không truy cập được")

@@ -13,13 +13,13 @@
              class="mt-1 w-full border rounded-lg px-3 py-2">
     </div>
     <div>
-      <label class="block text-sm font-medium">Loại nghiên cứu / vòng đánh giá *</label>
+      <label class="block text-sm font-medium">Loại nghiên cứu của công trình *</label>
       <select name="loai" required class="mt-1 w-full border rounded-lg px-3 py-2">
-        {% for key, t in rubric_types.items() %}
-        <option value="{{ key }}" {{ 'selected' if pa.loai == key }}>{{ t.label }}</option>
+        {% for key, label in bao_cao_labels.items() %}
+        <option value="{{ key }}" {{ 'selected' if pa.loai == key }}>{{ label }}</option>
         {% endfor %}
       </select>
-      <p class="text-xs text-slate-500 mt-1">Chọn đúng loại để hệ thống áp dụng phiếu đánh giá phù hợp (thuyết minh tuyển chọn / báo cáo tổng kết cơ bản / ứng dụng).</p>
+      <p class="text-xs text-slate-500 mt-1">Quyết định phiếu đánh giá <b>Báo cáo tổng kết</b> (Điều 6 Thể lệ). Bản <b>Thuyết minh</b> dùng chung một phiếu cho mọi công trình. Hồ sơ có sẵn ô nộp cho cả 2 vòng (thuyết minh & báo cáo).</p>
     </div>
     <div class="grid sm:grid-cols-2 gap-4">
       <div>

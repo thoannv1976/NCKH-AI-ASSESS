@@ -10,6 +10,7 @@ def _make_graded(store, uid="u-gv1", ma="GV001", ho_ten="Nguyễn Văn An", loai
     sid = new_id()
     store.put("submissions", sid, {
         "id": sid, "user_id": uid, "status": "graded", "ai_graded": True, "ai_total": 76,
+        "vong": "nghiem_thu",
         "anomaly_flags": ["Số liệu kết quả chưa nhất quán (thử nghiệm)"],
         "part_a": {"ten_cong_trinh": "Đề tài NCKH mẫu", "loai": loai, "ho_ten": ho_ten,
                    "ma_gv": ma, "khoa_bo_mon": "Viện KT&KDQT",

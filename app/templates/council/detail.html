@@ -13,6 +13,20 @@
   <span class="ml-auto text-lg">Tổng hiện tại: <b class="text-orange-700">{{ '%g' % total_now }}</b>/100</span>
 </div>
 
+<!-- Vòng đánh giá: quyết định phiếu chấm (thuyết minh / báo cáo) -->
+<div class="bg-white rounded-xl shadow p-4 mb-4 flex flex-wrap items-center gap-3 text-sm">
+  <span class="font-semibold">Vòng đánh giá</span>
+  <span class="text-slate-500">Đang áp phiếu: <b>{{ rubric.label }}</b></span>
+  <form method="post" action="/council/submission/{{ sub.id }}/vong" class="ml-auto flex items-center gap-2">
+    <select name="vong" class="border rounded-lg px-2 py-1.5">
+      <option value="tuyen_chon" {{ 'selected' if vong == 'tuyen_chon' }}>{{ vong_labels['tuyen_chon'] }}</option>
+      <option value="nghiem_thu" {{ 'selected' if vong == 'nghiem_thu' }}>{{ vong_labels['nghiem_thu'] }}</option>
+    </select>
+    <button class="bg-slate-700 hover:bg-slate-800 text-white rounded-lg px-3 py-1.5 font-semibold">Đổi vòng & chấm lại</button>
+  </form>
+  <p class="w-full text-xs text-slate-400">Đổi vòng để chấm đúng phiếu; điểm đã lưu của vòng kia được giữ nguyên (theo mã phần). Nhớ bấm “Chấm tự động” sau khi đổi vòng.</p>
+</div>
+
 <!-- Chấm tự động từng công trình (kiểm thử / chấm trước hạn) -->
 <div class="bg-white rounded-xl shadow p-4 mb-4 flex flex-wrap items-center gap-3 text-sm">
   <div>

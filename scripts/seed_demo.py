@@ -100,7 +100,7 @@ def seed(store, storage) -> None:
         return
     sid = new_id()
     store.put("submissions", sid, {
-        "id": sid, "user_id": owner["id"], "status": "submitted",
+        "id": sid, "user_id": owner["id"], "status": "submitted", "vong": "nghiem_thu",
         "part_a": {
             "ten_cong_trinh": "Ứng dụng dữ liệu lớn trong dự báo nhu cầu xuất khẩu dệt may Việt Nam",
             "loai": "bao_cao_ung_dung",

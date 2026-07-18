@@ -13,7 +13,7 @@ from app.config import (
 )
 from app.auth import require_role
 from app.db import new_id
-from app.rubric import default_type, graded_parts, resolve_type, rubric_for, rubric_types
+from app.rubric import BAO_CAO_TYPES, DEFAULT_BAO_CAO, active_rubric, upload_part_map
 from app.services import audit
 from app.services.emailer import email_submit_confirmation
 from app.services.grading.engine import invalidate_grading
@@ -28,9 +28,9 @@ def get_submission(store, user: dict) -> dict:
     sub = store.find_one("submissions", user_id=user["id"])
     if not sub:
         sub = {
-            "id": new_id(), "user_id": user["id"], "status": "draft",
+            "id": new_id(), "user_id": user["id"], "status": "draft", "vong": "tuyen_chon",
             "part_a": {
-                "ten_cong_trinh": "", "loai": default_type(store),
+                "ten_cong_trinh": "", "loai": DEFAULT_BAO_CAO,
                 "ho_ten": user.get("ho_ten", ""), "ma_gv": user.get("ma_gv", ""),
                 "khoa_bo_mon": " - ".join(x for x in [user.get("khoa", ""), user.get("bo_mon", "")] if x),
                 "thanh_vien": [], "gvhd": "",
@@ -58,11 +58,24 @@ def render(request: Request, template: str, user: dict, **ctx):
     )
 
 
+BAO_CAO_LABELS = {"bao_cao_ung_dung": "Nghiên cứu ứng dụng", "bao_cao_co_ban": "Nghiên cứu cơ bản"}
+
+
+def _grouped_parts(part_map: dict) -> list[dict]:
+    """Gom các phần theo nhóm vòng (giữ thứ tự) để hiển thị."""
+    groups: list[dict] = []
+    for part, meta in part_map.items():
+        if not groups or groups[-1]["group"] != meta["group"]:
+            groups.append({"group": meta["group"], "parts": []})
+        groups[-1]["parts"].append({"key": part, **meta})
+    return groups
+
+
 @router.get("")
 def dashboard(request: Request, user: dict = lecturer_dep):
     store = request.app.state.store
     sub = get_submission(store, user)
-    rubric = rubric_for(store, sub)
+    part_map = upload_part_map(store, sub)
     summary = completeness(store, sub)
     items = store.find("submission_items", submission_id=sub["id"])
     tl = get_timeline(store)
@@ -70,9 +83,9 @@ def dashboard(request: Request, user: dict = lecturer_dep):
         deadline_str = f"{parse_dt(tl['deadline']):%Hh%M ngày %d/%m/%Y}"
     except Exception:  # noqa: BLE001 — hạn nộp định dạng lạ thì hiện nguyên văn
         deadline_str = tl.get("deadline", "")
-    return render(request, "lecturer/dashboard.html", user, sub=sub, rubric=rubric,
-                  summary=summary, items=items, timeline=tl, deadline_str=deadline_str,
-                  deadline_passed=deadline_passed(store), parts=graded_parts(rubric))
+    return render(request, "lecturer/dashboard.html", user, sub=sub,
+                  groups=_grouped_parts(part_map), summary=summary, items=items, timeline=tl,
+                  deadline_str=deadline_str, deadline_passed=deadline_passed(store))
 
 
 @router.get("/part-a")
@@ -80,8 +93,7 @@ def part_a_form(request: Request, user: dict = lecturer_dep):
     store = request.app.state.store
     sub = get_submission(store, user)
     return render(request, "lecturer/part_a.html", user, sub=sub,
-                  rubric=rubric_for(store, sub), rubric_types=rubric_types(store),
-                  deadline_passed=deadline_passed(store))
+                  bao_cao_labels=BAO_CAO_LABELS, deadline_passed=deadline_passed(store))
 
 
 @router.post("/part-a")
@@ -102,12 +114,12 @@ def part_a_save(
     members = [t.strip() for t in re.split(r"[;\n]", thanh_vien) if t.strip()][:4]
     part_a = {
         "ten_cong_trinh": ten_cong_trinh.strip(),
-        "loai": resolve_type(store, loai),
+        "loai": loai if loai in BAO_CAO_TYPES else DEFAULT_BAO_CAO,
         "ho_ten": ho_ten.strip(), "ma_gv": ma_gv.strip(), "khoa_bo_mon": khoa_bo_mon.strip(),
         "gvhd": gvhd.strip(), "thanh_vien": members,
     }
     store.patch("submissions", sub["id"], {"part_a": part_a})
-    mark_dirty(store, sub)  # đổi loại nghiên cứu có thể đổi bộ tiêu chí → xóa điểm chấm thử cũ
+    mark_dirty(store, sub)  # đổi loại nghiên cứu có thể đổi phiếu báo cáo → xóa điểm chấm thử cũ
     return RedirectResponse("/lecturer?saved=A", status_code=303)
 
 
@@ -116,12 +128,13 @@ def part_page(part: str, request: Request, user: dict = lecturer_dep):
     part = part.upper()
     store = request.app.state.store
     sub = get_submission(store, user)
-    rubric = rubric_for(store, sub)
-    if part not in graded_parts(rubric):
+    part_map = upload_part_map(store, sub)
+    if part not in part_map:
         raise HTTPException(404)
+    meta = part_map[part]
     items = [i for i in store.find("submission_items", submission_id=sub["id"]) if i["part"] == part]
     return render(request, "lecturer/part_edit.html", user, sub=sub, part=part,
-                  part_def=rubric["parts"][part], items=items,
+                  part_def=meta["part_def"], group=meta["group"], items=items,
                   deadline_passed=deadline_passed(store), ma_gv=sub.get("part_a", {}).get("ma_gv", ""))
 
 
@@ -133,7 +146,7 @@ async def upload_file(part: str, request: Request, kind: str = Form(...),
     part = part.upper()
     store, storage = request.app.state.store, request.app.state.storage
     sub = get_submission(store, user)
-    if part not in graded_parts(rubric_for(store, sub)) or kind not in ("product", "evidence"):
+    if part not in upload_part_map(store, sub) or kind not in ("product", "evidence"):
         raise HTTPException(404)
     ensure_editable(store, sub)
 
@@ -181,7 +194,7 @@ def add_link(part: str, request: Request, kind: str = Form(...), url: str = Form
     part = part.upper()
     store = request.app.state.store
     sub = get_submission(store, user)
-    if part not in graded_parts(rubric_for(store, sub)) or kind not in ("product", "evidence"):
+    if part not in upload_part_map(store, sub) or kind not in ("product", "evidence"):
         raise HTTPException(404)
     ensure_editable(store, sub)
     url = url.strip()
@@ -245,7 +258,7 @@ def result(request: Request, user: dict = lecturer_dep):
     sub = get_submission(store, user)
     if sub.get("status") != "published":
         return render(request, "lecturer/result.html", user, sub=sub, published=False,
-                      review=None, scores={}, rubric=rubric_for(store, sub), appeal=None, appeal_open=False)
+                      review=None, scores={}, rubric=active_rubric(store, sub), appeal=None, appeal_open=False)
     review = store.get("reviews", sub["id"])
     scores = store.find("scores", submission_id=sub["id"])
     by_part: dict[str, list] = {}
@@ -253,7 +266,7 @@ def result(request: Request, user: dict = lecturer_dep):
         by_part.setdefault(s["part"], []).append(s)
     appeal = store.find_one("appeals", submission_id=sub["id"])
     return render(request, "lecturer/result.html", user, sub=sub, published=True,
-                  review=review, scores=by_part, rubric=rubric_for(store, sub), appeal=appeal,
+                  review=review, scores=by_part, rubric=active_rubric(store, sub), appeal=appeal,
                   appeal_open=appeal_window_open(sub["published_at"]))
 
 

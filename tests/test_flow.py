@@ -153,6 +153,7 @@ def test_bao_cao_ung_dung_grades_two_parts(client, store, storage):
     client.post("/lecturer/submit", follow_redirects=False)
 
     sub = store.find_one("submissions", user_id="u-gv2")
+    store.patch("submissions", sub["id"], {"vong": "nghiem_thu"})  # vòng nghiệm thu → chấm phiếu báo cáo
     login(client, "admin@dainam.edu.vn")
     client.post("/admin/lock", follow_redirects=False)
     run_grading(store, storage, MockGrader(), only_ids=[sub["id"]])

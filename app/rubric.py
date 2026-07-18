@@ -63,10 +63,59 @@ def get_rubric(store, rubric_type: str | None = None) -> dict:
     return tdef
 
 
-def rubric_for(store, submission: dict | None) -> dict:
-    """Rubric ứng với loại nghiên cứu (part_a.loai) của một hồ sơ công trình."""
-    loai = (submission or {}).get("part_a", {}).get("loai") if submission else None
-    return get_rubric(store, loai)
+BAO_CAO_TYPES = ("bao_cao_ung_dung", "bao_cao_co_ban")
+DEFAULT_BAO_CAO = "bao_cao_ung_dung"
+
+# Hai vòng đánh giá của một công trình SV NCKH:
+#   tuyen_chon  → chấm bản Thuyết minh chuyên đề (bộ tiêu chí "thuyet_minh", phần TM)
+#   nghiem_thu  → chấm Báo cáo tổng kết + sản phẩm (bộ tiêu chí "bao_cao_*", phần I, II)
+VONG_TUYEN_CHON = "tuyen_chon"
+VONG_NGHIEM_THU = "nghiem_thu"
+VONG_LABELS = {VONG_TUYEN_CHON: "Tuyển chọn thuyết minh", VONG_NGHIEM_THU: "Nghiệm thu báo cáo"}
+
+
+def bao_cao_type(submission: dict | None) -> str:
+    """Loại nghiên cứu (cơ bản/ứng dụng) của công trình → chọn phiếu đánh giá báo cáo."""
+    loai = (submission or {}).get("part_a", {}).get("loai")
+    return loai if loai in BAO_CAO_TYPES else DEFAULT_BAO_CAO
+
+
+def submission_vong(submission: dict | None) -> str:
+    return (submission or {}).get("vong") or VONG_TUYEN_CHON
+
+
+def active_rubric(store, submission: dict | None) -> dict:
+    """Bộ tiêu chí ĐANG dùng để chấm hồ sơ, theo vòng đánh giá hiện tại.
+
+    - Vòng tuyển chọn: phiếu Thuyết minh chuyên đề.
+    - Vòng nghiệm thu: phiếu Báo cáo tổng kết (cơ bản/ứng dụng theo loại nghiên cứu).
+    """
+    if submission_vong(submission) == VONG_NGHIEM_THU:
+        return get_rubric(store, bao_cao_type(submission))
+    return get_rubric(store, "thuyet_minh")
+
+
+# Tương thích ngược: rubric_for = bộ tiêu chí đang dùng để chấm (theo vòng).
+rubric_for = active_rubric
+
+
+def upload_part_map(store, submission: dict | None) -> dict[str, dict]:
+    """Toàn bộ phần sinh viên có thể nộp trong 1 hồ sơ, gộp cả 2 vòng.
+
+    Trả về {mã_phần: {"part_def", "rubric", "type", "group", "vong"}} theo thứ tự
+    Vòng 1 (Thuyết minh: TM) rồi Vòng 2 (Báo cáo: I, II). Mã phần không trùng nhau
+    giữa hai bộ tiêu chí nên gộp an toàn.
+    """
+    tm = get_rubric(store, "thuyet_minh")
+    bc = get_rubric(store, bao_cao_type(submission))
+    out: dict[str, dict] = {}
+    for p in graded_parts(tm):
+        out[p] = {"part_def": tm["parts"][p], "rubric": tm, "type": "thuyet_minh",
+                  "vong": VONG_TUYEN_CHON, "group": "Vòng 1 — Thuyết minh chuyên đề (tuyển chọn)"}
+    for p in graded_parts(bc):
+        out[p] = {"part_def": bc["parts"][p], "rubric": bc, "type": bc.get("type"),
+                  "vong": VONG_NGHIEM_THU, "group": "Vòng 2 — Báo cáo tổng kết & sản phẩm (nghiệm thu)"}
+    return out
 
 
 def graded_parts(rubric: dict) -> list[str]:
