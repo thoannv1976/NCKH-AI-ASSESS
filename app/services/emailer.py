@@ -9,7 +9,7 @@ from email.mime.text import MIMEText
 
 from app.config import get_settings, now_vn
 
-logger = logging.getLogger("dnu.email")
+logger = logging.getLogger("ftu.email")
 
 
 def send_email(store, to: str, subject: str, body: str, kind: str = "general") -> None:
@@ -39,7 +39,7 @@ def send_email(store, to: str, subject: str, body: str, kind: str = "general") -
 
 
 def _signoff(s) -> str:
-    return f"Trân trọng,\nBan tổ chức Chương trình đánh giá năng lực AI – {s.org_short} {s.program_year}"
+    return f"Trân trọng,\nBan tổ chức Cuộc thi SV NCKH – {s.org_short} {s.program_year}"
 
 
 def email_submit_confirmation(store, user: dict, summary: dict) -> None:
@@ -47,9 +47,9 @@ def email_submit_confirmation(store, user: dict, summary: dict) -> None:
     missing = "\n".join(f"  - {w}" for w in summary.get("warnings", [])) or "  (không có)"
     body = (
         f"Kính gửi {user.get('ho_ten', user['email'])},\n\n"
-        f"Hệ thống {s.app_title} xác nhận đã tiếp nhận hồ sơ của thầy/cô lúc {now_vn():%H:%M ngày %d/%m/%Y}.\n"
+        f"Hệ thống {s.app_title} xác nhận đã tiếp nhận hồ sơ của nhóm sinh viên lúc {now_vn():%H:%M ngày %d/%m/%Y}.\n"
         f"Các mục cần lưu ý bổ sung trước hạn nộp:\n{missing}\n\n"
-        "Thầy/cô có thể nộp lại nhiều lần trước hạn; hệ thống chỉ chấm bản nộp cuối cùng.\n\n"
+        "Nhóm có thể nộp lại nhiều lần trước hạn; hệ thống chỉ chấm bản nộp cuối cùng.\n\n"
         f"{_signoff(s)}"
     )
     send_email(store, user["email"], f"[{s.app_title}] Xác nhận nộp hồ sơ thành công", body, kind="confirm")
@@ -61,8 +61,8 @@ def email_reminder(store, user: dict, warnings: list[str]) -> None:
     body = (
         f"Kính gửi {user.get('ho_ten', user['email'])},\n\n"
         "Còn chưa đầy 24 giờ là đến hạn nộp hồ sơ. "
-        "Hồ sơ của thầy/cô còn thiếu các mục sau:\n"
-        f"{miss}\n\nĐề nghị thầy/cô hoàn thiện trên hệ thống {s.app_title} trước hạn.\n\n"
+        "Hồ sơ của nhóm sinh viên còn thiếu các mục sau:\n"
+        f"{miss}\n\nĐề nghị nhóm sinh viên hoàn thiện trên hệ thống {s.app_title} trước hạn.\n\n"
         f"{_signoff(s)}"
     )
     send_email(store, user["email"], f"[{s.app_title}] Nhắc hoàn thiện hồ sơ trước hạn 24 giờ", body, kind="reminder")
@@ -73,12 +73,12 @@ def email_result(store, user: dict, total: float, label: str, detail_lines: list
     detail = "\n".join(detail_lines)
     body = (
         f"Kính gửi {user.get('ho_ten', user['email'])},\n\n"
-        f"Kết quả đánh giá năng lực ứng dụng AI năm {s.program_year} của thầy/cô:\n"
-        f"  Tổng điểm: {total:g}/100 — Mức năng lực: {label}\n\n"
+        f"Kết quả đánh giá công trình SV NCKH năm {s.program_year}:\n"
+        f"  Tổng điểm: {total:g}/100 — Xếp loại: {label}\n\n"
         f"Điểm thành phần:\n{detail}\n\n"
-        "Thầy/cô đăng nhập hệ thống để xem nhận xét chi tiết từng tiêu chí. "
-        "Quyền phản hồi kết quả: trong 03 ngày làm việc kể từ ngày công bố, gửi trực tiếp trên hệ thống.\n\n"
+        "Đăng nhập hệ thống để xem nhận xét chi tiết từng tiêu chí. "
+        "Quyền khiếu nại/phản hồi kết quả: trong 03 ngày làm việc kể từ ngày công bố, gửi trực tiếp trên hệ thống.\n\n"
         f"{_signoff(s)}"
     )
     send_email(store, user["email"],
-               f"[{s.app_title}] Kết quả đánh giá năng lực ứng dụng AI {s.program_year}", body, kind="result")
+               f"[{s.app_title}] Kết quả đánh giá công trình SV NCKH {s.program_year}", body, kind="result")

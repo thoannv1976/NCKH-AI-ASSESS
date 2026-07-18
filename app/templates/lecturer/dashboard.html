@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% block title %}Hồ sơ của tôi — {{ APP_TITLE }}{% endblock %}
+{% block title %}Hồ sơ công trình — {{ APP_TITLE }}{% endblock %}
 {% block content %}
 {% set status_labels = {'draft':'Bản nháp','submitted':'Đã nộp','locked':'Đã khóa (hết hạn)','grading':'Đang chấm','graded':'Đã chấm — chờ thẩm định','approved':'Hội đồng đã phê duyệt','published':'Đã công bố kết quả'} %}
 <div class="flex flex-wrap items-center gap-3 mb-5">
-  <h1 class="text-xl font-bold">Hồ sơ đánh giá năng lực AI — {{ user.ho_ten }}</h1>
+  <h1 class="text-xl font-bold">Hồ sơ công trình SV NCKH — {{ (sub.part_a or {}).ten_cong_trinh or user.ho_ten }}</h1>
   <span class="text-sm px-2.5 py-1 rounded-full
     {{ 'bg-emerald-100 text-emerald-700' if sub.status in ('submitted','published') else 'bg-slate-200 text-slate-600' }}">
     {{ status_labels.get(sub.status, sub.status) }}</span>
@@ -14,7 +14,7 @@
 
 {% if request.query_params.get('submitted') %}
 <div class="bg-emerald-50 border border-emerald-300 text-emerald-800 rounded-lg p-3 mb-4 text-sm">
-  ✅ Đã nộp hồ sơ thành công. Thầy/cô vẫn có thể bổ sung và nộp lại trước hạn — hệ thống chỉ chấm bản cuối cùng.
+  ✅ Đã nộp hồ sơ thành công. Nhóm vẫn có thể bổ sung và nộp lại trước hạn — hệ thống chỉ chấm bản cuối cùng.
 </div>
 {% endif %}
 
@@ -29,11 +29,11 @@
   <!-- Phần A -->
   <div class="bg-white rounded-xl shadow p-5 border-l-4 {{ 'border-emerald-500' if summary.A.ok else 'border-red-400' }}">
     <div class="flex items-center justify-between">
-      <h2 class="font-semibold">Phần A — Thông tin chung</h2>
+      <h2 class="font-semibold">Phần A — Thông tin công trình</h2>
       <span class="text-xs px-2 py-0.5 rounded-full {{ 'bg-emerald-100 text-emerald-700' if summary.A.ok else 'bg-red-100 text-red-600' }}">
         {{ 'Đầy đủ' if summary.A.ok else 'Chưa đầy đủ' }}</span>
     </div>
-    <p class="text-sm text-slate-500 mt-1">Điều kiện hợp lệ của hồ sơ — không tính điểm.</p>
+    <p class="text-sm text-slate-500 mt-1">Tên công trình, loại nghiên cứu, chủ nhiệm, thành viên, đơn vị, GVHD — điều kiện hợp lệ của hồ sơ.</p>
     {% if not summary.A.ok %}
     <p class="text-xs text-red-500 mt-1">Còn thiếu: {{ summary.A.missing | join(', ') }}</p>
     {% endif %}
@@ -46,22 +46,22 @@
   <div class="bg-white rounded-xl shadow p-5 border-l-4 {{ 'border-emerald-500' if info.ok else 'border-slate-300' }}">
     <div class="flex items-center justify-between">
       <h2 class="font-semibold">Phần {{ p }} — {{ pd.name }}</h2>
-      <span class="text-xs text-slate-500 whitespace-nowrap">{{ pd.max_score }} điểm ({{ pd.weight }}%)</span>
+      <span class="text-xs text-slate-500 whitespace-nowrap">tối đa {{ pd.max_score }} điểm</span>
     </div>
     <div class="flex gap-4 mt-2 text-sm">
-      <span>📄 Sản phẩm: <b>{{ info.products }}</b></span>
-      {% if p != 'G' %}<span>🔎 Minh chứng AI: <b>{{ info.evidences }}</b></span>{% endif %}
+      <span>📄 Tài liệu/sản phẩm: <b>{{ info.products }}</b></span>
+      {% if rubric.evidence_required and p != 'G' %}<span>🔎 Minh chứng: <b>{{ info.evidences }}</b></span>{% endif %}
       <span class="ml-auto text-xs px-2 py-0.5 rounded-full {{ 'bg-emerald-100 text-emerald-700' if info.ok else 'bg-slate-100 text-slate-500' }}">
         {{ 'Đủ thành phần' if info.ok else 'Chưa đủ' }}</span>
     </div>
-    <a href="/lecturer/part/{{ p }}" class="inline-block mt-3 text-sm text-orange-700 font-semibold hover:underline">Nộp sản phẩm & minh chứng →</a>
+    <a href="/lecturer/part/{{ p }}" class="inline-block mt-3 text-sm text-orange-700 font-semibold hover:underline">Nộp tài liệu / minh chứng →</a>
   </div>
   {% endfor %}
 </div>
 
 {% if not deadline_passed and sub.status in ('draft', 'submitted') %}
 <form method="post" action="/lecturer/submit" class="mt-6 text-center"
-      onsubmit="return confirm('Xác nhận nộp hồ sơ? Thầy/cô vẫn có thể nộp lại trước hạn.')">
+      onsubmit="return confirm('Xác nhận nộp hồ sơ? Nhóm vẫn có thể nộp lại trước hạn.')">
   <button class="bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl px-10 py-3 shadow
                  {{ 'opacity-50 cursor-not-allowed' if not summary.A.ok }}"
           {{ 'disabled' if not summary.A.ok }}>

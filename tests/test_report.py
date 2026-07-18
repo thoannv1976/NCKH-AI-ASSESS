@@ -1,21 +1,21 @@
 """Test xuất Phiếu đánh giá (docx + pdf) sau khi AI chấm điểm."""
-from app.config import GRADED_PARTS
 from app.db import new_id
-from app.rubric import get_rubric
+from app.rubric import get_rubric, graded_parts
 from tests.conftest import login
 
 
-def _make_graded(store, uid="u-gv1", ma="GV001", ho_ten="Nguyễn Văn An"):
-    """Tạo hồ sơ đã có điểm (mô phỏng AI đã chấm) cho một giảng viên."""
-    rub = get_rubric(store)
+def _make_graded(store, uid="u-gv1", ma="GV001", ho_ten="Nguyễn Văn An", loai="bao_cao_ung_dung"):
+    """Tạo hồ sơ công trình đã có điểm (mô phỏng AI đã chấm)."""
+    rub = get_rubric(store, loai)
     sid = new_id()
     store.put("submissions", sid, {
         "id": sid, "user_id": uid, "status": "graded", "ai_graded": True, "ai_total": 76,
-        "anomaly_flags": ["Minh chứng không khớp sản phẩm (thử nghiệm)"],
-        "part_a": {"ho_ten": ho_ten, "ma_gv": ma, "khoa_bo_mon": "CNTT - KTPM",
-                   "hoc_phan": "Nhập môn AI", "cong_cu_ai": ["Claude", "ChatGPT"]},
+        "anomaly_flags": ["Số liệu kết quả chưa nhất quán (thử nghiệm)"],
+        "part_a": {"ten_cong_trinh": "Đề tài NCKH mẫu", "loai": loai, "ho_ten": ho_ten,
+                   "ma_gv": ma, "khoa_bo_mon": "Viện KT&KDQT",
+                   "thanh_vien": ["Trần Thị B - 2211110003"], "gvhd": "PGS. TS. Vũ Hoàng Nam"},
     })
-    for p in GRADED_PARTS:
+    for p in graded_parts(rub):
         for c in rub["parts"][p]["criteria"]:
             store.put("scores", f"{sid}_{p}_{c['id']}", {
                 "submission_id": sid, "part": p, "criterion_id": c["id"], "max": c["max"],

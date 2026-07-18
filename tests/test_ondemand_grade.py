@@ -3,22 +3,17 @@ import time
 
 from app.services.grading.engine import grade_submission, invalidate_grading
 from app.services.grading.graders import MockGrader
-from tests.conftest import login, make_docx_bytes
-
-DOCX_CT = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+from tests.conftest import DOCX_CT, fill_part_a, login, make_docx_bytes
 
 
 def _make_submitted(client, store, email="gv001@dainam.edu.vn", ma="GV001"):
     login(client, email)
-    client.post("/lecturer/part-a", data={
-        "ho_ten": "GV Test", "ma_gv": ma, "khoa_bo_mon": "CNTT",
-        "hoc_phan": "AI", "cong_cu_ai": "Claude", "muc_thanh_thao": 4,
-    }, follow_redirects=False)
-    data = make_docx_bytes("SP B", ["nội dung B"])
-    client.post("/lecturer/part/B/upload", data={"kind": "product"},
-                files={"files": ("GV001_PhanB_SP.docx", data, DOCX_CT)}, follow_redirects=False)
-    client.post("/lecturer/part/B/upload", data={"kind": "evidence"},
-                files={"files": ("GV001_PhanB_MC.docx", data, DOCX_CT)}, follow_redirects=False)
+    fill_part_a(client, ma_gv=ma, ho_ten="SV Test", loai="bao_cao_ung_dung")
+    data = make_docx_bytes("Báo cáo I", ["nội dung phần I"])
+    client.post("/lecturer/part/I/upload", data={"kind": "product"},
+                files={"files": ("GV001_PhanI_SP.docx", data, DOCX_CT)}, follow_redirects=False)
+    client.post("/lecturer/part/I/upload", data={"kind": "evidence"},
+                files={"files": ("GV001_PhanI_MC.docx", data, DOCX_CT)}, follow_redirects=False)
     client.post("/lecturer/submit", follow_redirects=False)
     return store.find_one("submissions", user_id="u-gv1")
 
@@ -48,8 +43,8 @@ def test_grade_submission_keep_status_does_not_lock_lecturer(client, store, stor
     # Giảng viên vẫn upload/sửa được sau khi chấm thử
     login(client, "gv001@dainam.edu.vn")
     data = make_docx_bytes("Thêm", ["x"])
-    r = client.post("/lecturer/part/C/upload", data={"kind": "product"},
-                    files={"files": ("GV001_PhanC_SP.docx", data, DOCX_CT)}, follow_redirects=False)
+    r = client.post("/lecturer/part/II/upload", data={"kind": "product"},
+                    files={"files": ("GV001_PhanII_SP.docx", data, DOCX_CT)}, follow_redirects=False)
     assert r.status_code == 303
 
 
@@ -90,8 +85,8 @@ def test_lecturer_edit_invalidates_test_grade(client, store, storage):
     # Giảng viên sửa hồ sơ → kết quả chấm thử bị xóa để chấm lại trên nội dung mới
     login(client, "gv001@dainam.edu.vn")
     data = make_docx_bytes("Sửa", ["y"])
-    client.post("/lecturer/part/D/upload", data={"kind": "product"},
-                files={"files": ("GV001_PhanD_SP.docx", data, DOCX_CT)}, follow_redirects=False)
+    client.post("/lecturer/part/II/upload", data={"kind": "product"},
+                files={"files": ("GV001_PhanII_SP.docx", data, DOCX_CT)}, follow_redirects=False)
     sub = store.get("submissions", sub["id"])
     assert sub.get("ai_graded") is False
     assert not sub.get("grading_progress")
@@ -99,7 +94,7 @@ def test_lecturer_edit_invalidates_test_grade(client, store, storage):
 
 def test_invalidate_grading_helper(store):
     store.put("submissions", "s1", {"id": "s1", "ai_graded": True, "ai_total": 80,
-                                    "grading_progress": {"B": True}, "part_results": {"B": {}}})
+                                    "grading_progress": {"I": True}, "part_results": {"I": {}}})
     invalidate_grading(store, "s1")
     s = store.get("submissions", "s1")
     assert s["ai_graded"] is False and not s["grading_progress"] and s["ai_total"] is None

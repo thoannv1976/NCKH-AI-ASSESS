@@ -1,48 +1,50 @@
 {% extends "base.html" %}
-{% block title %}Phần A — Thông tin chung{% endblock %}
+{% block title %}Phần A — Thông tin công trình{% endblock %}
 {% block content %}
 {% set pa = sub.part_a or {} %}
 <a href="/lecturer" class="text-sm text-slate-500 hover:underline">← Quay lại hồ sơ</a>
 <div class="bg-white rounded-xl shadow p-6 mt-3 max-w-2xl">
-  <h1 class="text-lg font-bold">Phần A — Thông tin chung</h1>
-  <p class="text-sm text-slate-500 mt-1">{{ rubric.parts.A.description }}</p>
+  <h1 class="text-lg font-bold">Phần A — Thông tin công trình / chuyên đề</h1>
+  <p class="text-sm text-slate-500 mt-1">Kê khai thông tin chung của công trình NCKH: tên đề tài, loại nghiên cứu, chủ nhiệm (01 sinh viên), thành viên (tối đa 04), đơn vị và giảng viên hướng dẫn.</p>
   <form method="post" action="/lecturer/part-a" class="mt-5 space-y-4">
-    <div class="grid sm:grid-cols-2 gap-4">
-      <div>
-        <label class="block text-sm font-medium">Họ và tên *</label>
-        <input name="ho_ten" value="{{ pa.ho_ten or '' }}" required class="mt-1 w-full border rounded-lg px-3 py-2">
-      </div>
-      <div>
-        <label class="block text-sm font-medium">Mã giảng viên *</label>
-        <input name="ma_gv" value="{{ pa.ma_gv or '' }}" required placeholder="GV001" class="mt-1 w-full border rounded-lg px-3 py-2">
-      </div>
-    </div>
     <div>
-      <label class="block text-sm font-medium">Đơn vị / Bộ môn *</label>
-      <input name="khoa_bo_mon" value="{{ pa.khoa_bo_mon or '' }}" required class="mt-1 w-full border rounded-lg px-3 py-2">
-    </div>
-    <div>
-      <label class="block text-sm font-medium">Học phần đăng ký thực hiện đề bài *</label>
-      <input name="hoc_phan" value="{{ pa.hoc_phan or '' }}" required
-             placeholder="Thuộc kế hoạch giảng dạy năm học 2026–2027 (ưu tiên học kỳ I)"
+      <label class="block text-sm font-medium">Tên công trình / chuyên đề *</label>
+      <input name="ten_cong_trinh" value="{{ pa.ten_cong_trinh or '' }}" required
              class="mt-1 w-full border rounded-lg px-3 py-2">
     </div>
     <div>
-      <label class="block text-sm font-medium">Danh mục công cụ AI dự kiến sử dụng *</label>
-      <textarea name="cong_cu_ai" rows="3" required placeholder="Mỗi công cụ một dòng hoặc phân cách bằng dấu phẩy. Ví dụ: Claude, ChatGPT, Gamma, NotebookLM"
-                class="mt-1 w-full border rounded-lg px-3 py-2">{{ (pa.cong_cu_ai or []) | join(', ') }}</textarea>
+      <label class="block text-sm font-medium">Loại nghiên cứu / vòng đánh giá *</label>
+      <select name="loai" required class="mt-1 w-full border rounded-lg px-3 py-2">
+        {% for key, t in rubric_types.items() %}
+        <option value="{{ key }}" {{ 'selected' if pa.loai == key }}>{{ t.label }}</option>
+        {% endfor %}
+      </select>
+      <p class="text-xs text-slate-500 mt-1">Chọn đúng loại để hệ thống áp dụng phiếu đánh giá phù hợp (thuyết minh tuyển chọn / báo cáo tổng kết cơ bản / ứng dụng).</p>
+    </div>
+    <div class="grid sm:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium">Họ và tên chủ nhiệm *</label>
+        <input name="ho_ten" value="{{ pa.ho_ten or '' }}" required class="mt-1 w-full border rounded-lg px-3 py-2">
+      </div>
+      <div>
+        <label class="block text-sm font-medium">MSSV chủ nhiệm *</label>
+        <input name="ma_gv" value="{{ pa.ma_gv or '' }}" required placeholder="VD: 2211110001" class="mt-1 w-full border rounded-lg px-3 py-2">
+      </div>
     </div>
     <div>
-      <label class="block text-sm font-medium">Mức độ thành thạo AI tự đánh giá (thang 5 mức) *</label>
-      <div class="flex gap-4 mt-2 text-sm">
-        {% for i in range(1, 6) %}
-        <label class="flex items-center gap-1.5">
-          <input type="radio" name="muc_thanh_thao" value="{{ i }}" required
-                 {{ 'checked' if pa.muc_thanh_thao == i }}>
-          <span>{{ i }} — {{ ['Mới bắt đầu','Cơ bản','Trung bình','Khá','Thành thạo'][i-1] }}</span>
-        </label>
-        {% endfor %}
-      </div>
+      <label class="block text-sm font-medium">Đơn vị (Viện / Khoa / Cơ sở) *</label>
+      <input name="khoa_bo_mon" value="{{ pa.khoa_bo_mon or '' }}" required
+             placeholder="VD: Viện Kinh tế & Kinh doanh quốc tế" class="mt-1 w-full border rounded-lg px-3 py-2">
+    </div>
+    <div>
+      <label class="block text-sm font-medium">Thành viên nhóm (tối đa 04, không tính chủ nhiệm)</label>
+      <textarea name="thanh_vien" rows="3" placeholder="Mỗi thành viên cách nhau bằng dấu ; hoặc xuống dòng. VD: Nguyễn Văn A - 2211110002; Trần Thị B - 2211110003"
+                class="mt-1 w-full border rounded-lg px-3 py-2">{{ (pa.thanh_vien or []) | join('; ') if pa.thanh_vien is not string else (pa.thanh_vien or '') }}</textarea>
+    </div>
+    <div>
+      <label class="block text-sm font-medium">Giảng viên hướng dẫn (nếu đã phân công)</label>
+      <input name="gvhd" value="{{ pa.gvhd or '' }}" placeholder="Để trống nếu chưa phân công GVHD"
+             class="mt-1 w-full border rounded-lg px-3 py-2">
     </div>
     {% if not deadline_passed %}
     <button class="bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg px-6 py-2.5">Lưu Phần A</button>

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Phản hồi kết quả{% endblock %}
 {% block content %}
-<h1 class="text-xl font-bold mb-4">Phản hồi kết quả của giảng viên</h1>
+<h1 class="text-xl font-bold mb-4">Phản hồi/khiếu nại của nhóm SV</h1>
 <div class="space-y-4">
   {% for r in rows %}
   <div class="bg-white rounded-xl shadow p-5">
@@ -15,7 +15,7 @@
     <p class="text-sm mt-2 text-slate-700">{{ r.appeal.content }}</p>
     {% if r.appeal.status == 'open' %}
     <form method="post" action="/council/appeal/{{ r.appeal.id }}/resolve" class="mt-3 flex gap-2">
-      <input name="resolution" required placeholder="Nội dung trả lời giảng viên..."
+      <input name="resolution" required placeholder="Nội dung trả lời nhóm SV..."
              class="flex-1 border rounded-lg px-3 py-2 text-sm">
       <button class="bg-slate-700 text-white rounded-lg px-4 text-sm">Trả lời & đóng</button>
     </form>

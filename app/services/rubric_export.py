@@ -1,7 +1,7 @@
-"""Xuất rubric chấm điểm ra Excel (.xlsx) và Word (.docx).
+"""Xuất phiếu đánh giá (rubric) ra Excel (.xlsx) và Word (.docx).
 
-Bản Excel là BỘ RUBRIC CHUẨN CHO HỘI ĐỒNG (chấm vòng 2): gồm hướng dẫn,
-rubric 4 mức chi tiết, bảng nhập điểm tự tính tổng + xếp loại, và bảng phân loại.
+Bản Excel là PHIẾU CHẤM CHO HỘI ĐỒNG: gồm hướng dẫn, phiếu 4 mức chi tiết,
+bảng nhập điểm tự tính tổng + xếp loại, và bảng xếp loại công trình.
 """
 from __future__ import annotations
 
@@ -50,21 +50,21 @@ def rubric_to_xlsx(rubric: dict) -> bytes:
     # ---------- Sheet 1: Hướng dẫn ----------
     ws = wb.active
     ws.title = "Huong_dan"
+    label = rubric.get("label", "")
     lines = [
-        (f"RUBRIC CHẤM ĐIỂM – ĐÁNH GIÁ NĂNG LỰC ỨNG DỤNG AI CỦA GIẢNG VIÊN {s.org_short} {s.program_year}", 14, True),
-        (f"Phiên bản rubric: {rubric.get('version', '')} · Dùng cho Hội đồng đánh giá cấp Trường (chấm vòng 2)", 11, False),
+        (f"PHIẾU ĐÁNH GIÁ – CUỘC THI SV NCKH {s.org_short} {s.program_year}", 14, True),
+        (f"{label} · Phiên bản: {rubric.get('version', '')} · Dùng cho Hội đồng đánh giá công trình", 11, False),
         ("", 11, False),
-        ("1. Thang điểm: tổng 100 điểm theo trọng số các Phần B–G. Phần A là điều kiện hợp lệ (Đạt/Không đạt), không tính điểm.", 11, False),
-        ("2. Mỗi tiêu chí chấm theo 4 mức: Xuất sắc (90–100% điểm), Đạt yêu cầu (70–89%), Cơ bản (50–69%), Chưa đạt (<50%).", 11, False),
+        ("1. Thang điểm: tổng 100 điểm theo các phần của phiếu đánh giá.", 11, False),
+        ("2. Mỗi tiêu chí chấm theo 4 mức tham chiếu: Xuất sắc (90–100% điểm), Đạt yêu cầu (70–89%), Cơ bản (50–69%), Chưa đạt (<50%).", 11, False),
         ("   Hội đồng xác định mức phù hợp nhất với bài làm rồi cho điểm trong khoảng của mức đó (xem sheet 'Rubric_chi_tiet').", 11, False),
-        (f"3. Phần mềm {s.app_title} đã chấm vòng 1: mỗi tiêu chí 2 lượt độc lập, chênh >15% chấm lượt 3 lấy trung vị.", 11, False),
-        ("   Cột 'Điểm AI đề xuất' ở sheet 'Bang_diem' là kết quả vòng 1 để Hội đồng tham khảo.", 11, False),
-        ("4. Quy tắc minh chứng: sản phẩm thiếu minh chứng AI bị trừ tối đa 50% điểm của tiêu chí liên quan.", 11, False),
-        ("5. Phần E có điểm thưởng E_BONUS (tối đa +2) cho nhiệm vụ khuyến khích, nhưng tổng Phần E không vượt 20 điểm.", 11, False),
-        ("6. Hội đồng nhập điểm và nhận xét vào CỘT VÀNG ở sheet 'Bang_diem'; tổng điểm và xếp loại tự động tính.", 11, False),
-        ("7. Điểm cuối cùng là điểm Hội đồng phê duyệt. Kết quả dùng để phát triển đội ngũ, KHÔNG dùng xử lý thi đua/kỷ luật.", 11, False),
+        (f"3. Phần mềm {s.app_title} đã chấm sơ bộ: mỗi tiêu chí 2 lượt độc lập, chênh >15% chấm lượt 3 lấy trung vị.", 11, False),
+        ("   Cột 'Điểm AI đề xuất' ở sheet 'Bang_diem' là kết quả chấm sơ bộ để Hội đồng tham khảo.", 11, False),
+        ("4. Điểm công trình là điểm trung bình của các thành viên Hội đồng; chênh >20 điểm so với trung bình phải đánh giá lại.", 11, False),
+        ("5. Hội đồng nhập điểm và nhận xét vào CỘT VÀNG ở sheet 'Bang_diem'; tổng điểm và xếp loại tự động tính.", 11, False),
+        ("6. Công trình đạt từ 80 điểm trở lên (tối đa 50% số công trình) đủ điều kiện xét chọn dự Cuộc thi cấp Trường.", 11, False),
         ("", 11, False),
-        ("Các sheet: Rubric_chi_tiet (rubric 4 mức) · Bang_diem (nhập điểm, tự tính) · Phan_loai (ngưỡng xếp loại).", 11, False),
+        ("Các sheet: Rubric_chi_tiet (phiếu 4 mức) · Bang_diem (nhập điểm, tự tính) · Phan_loai (ngưỡng xếp loại).", 11, False),
     ]
     for i, (text, size, b) in enumerate(lines, 1):
         ws.cell(row=i, column=1, value=text).font = Font(bold=b or size > 12, size=size)
@@ -97,8 +97,8 @@ def rubric_to_xlsx(rubric: dict) -> bytes:
     # ---------- Sheet 3: Bảng nhập điểm (tự tính tổng + xếp loại) ----------
     ws3 = wb.create_sheet("Bang_diem")
     info = [(f"BẢNG NHẬP ĐIỂM HỘI ĐỒNG – {s.app_title.upper()} {s.program_year}", ""),
-            ("Họ tên GV:", ""), ("Mã GV:", ""), ("Đơn vị/Bộ môn:", ""),
-            ("Học phần:", ""), ("Thành viên Hội đồng chấm:", "")]
+            ("Tên công trình:", ""), ("Chủ nhiệm:", ""), ("Đơn vị (Viện/Khoa/Cơ sở):", ""),
+            ("Loại nghiên cứu:", ""), ("Thành viên Hội đồng chấm:", "")]
     for label, val in info:
         ws3.append([label, val])
     ws3["A1"].font = Font(bold=True, size=13)
@@ -110,7 +110,7 @@ def rubric_to_xlsx(rubric: dict) -> bytes:
 
     part_subtotal_rows: list[tuple[str, int, int]] = []  # (part, first_data_row, last_data_row)
     for k, p in _graded_parts(rubric):
-        ws3.append([f"PHẦN {k}", f"{p['name']}  (trọng số {p['weight']}%)", "", "", "", ""])
+        ws3.append([f"PHẦN {k}", f"{p['name']}  (tối đa {p['max_score']} điểm)", "", "", "", ""])
         prow = ws3[ws3.max_row]
         for c in prow:
             c.fill, c.font = sub_fill, bold
@@ -124,10 +124,10 @@ def rubric_to_xlsx(rubric: dict) -> bytes:
             for cell in r:
                 cell.border = thin
         last_data = ws3.max_row
-        # Dòng cộng phần (Phần E kẹp trần max_score)
+        # Dòng cộng phần — luôn kẹp trần max_score của phần
         cmax = get_column_letter(5)
         sum_expr = f"SUM({cmax}{first_data}:{cmax}{last_data})"
-        formula = f"=MIN({sum_expr},{p['max_score']})" if k == "E" else f"={sum_expr}"
+        formula = f"=MIN({sum_expr},{p['max_score']})"
         ws3.append([f"Cộng Phần {k}", "", p["max_score"], "", None, ""])
         srow = ws3[ws3.max_row]
         srow[0].font = bold
@@ -142,13 +142,14 @@ def rubric_to_xlsx(rubric: dict) -> bytes:
     ws3.cell(row=total_row, column=2, value="TỔNG ĐIỂM (thang 100)").font = Font(bold=True, size=12)
     ws3.cell(row=total_row, column=3, value=100)
     ws3.cell(row=total_row, column=5, value=f"={sub_cells}").font = Font(bold=True, size=12)
-    # Xếp loại tự động theo tổng (cột E dòng total)
+    # Xếp loại tự động theo tổng (cột E dòng total) — hỗ trợ số mức xếp loại tùy ý
     levels = sorted(rubric["classification"], key=lambda x: -x["min"])
     tot = f"E{total_row}"
-    cls = (f'=IF({tot}>={levels[0]["min"]},"{levels[0]["label"]}",'
-           f'IF({tot}>={levels[1]["min"]},"{levels[1]["label"]}",'
-           f'IF({tot}>={levels[2]["min"]},"{levels[2]["label"]}","{levels[3]["label"]}")))')
-    ws3.cell(row=total_row + 1, column=2, value="XẾP LOẠI NĂNG LỰC").font = Font(bold=True, size=12)
+    cls = f'"{levels[-1]["label"]}"'
+    for lv in reversed(levels[:-1]):
+        cls = f'IF({tot}>={lv["min"]},"{lv["label"]}",{cls})'
+    cls = "=" + cls
+    ws3.cell(row=total_row + 1, column=2, value="XẾP LOẠI").font = Font(bold=True, size=12)
     ws3.cell(row=total_row + 1, column=5, value=cls).font = Font(bold=True, size=12, color="EA580C")
     for w, col in zip([10, 46, 11, 14, 14, 50], "ABCDEF"):
         ws3.column_dimensions[col].width = w
@@ -156,18 +157,18 @@ def rubric_to_xlsx(rubric: dict) -> bytes:
 
     # ---------- Sheet 4: Phân loại ----------
     ws4 = wb.create_sheet("Phan_loai")
-    ws4.append(["XẾP LOẠI NĂNG LỰC VÀ ĐỊNH HƯỚNG SỬ DỤNG KẾT QUẢ"])
+    ws4.append(["XẾP LOẠI CÔNG TRÌNH VÀ GHI CHÚ"])
     ws4["A1"].font = Font(bold=True, size=13)
     ws4.append([])
-    ws4.append(["Mức năng lực", "Khoảng điểm", "Định hướng sử dụng kết quả"])
+    ws4.append(["Xếp loại", "Khoảng điểm", "Ghi chú"])
     for c in ws4[3]:
         c.fill, c.font, c.border = head_fill, head_font, thin
     for i, lv in enumerate(levels):
         ws4.append([lv["label"], _level_range(rubric, i), lv.get("note", "")])
         ws4[ws4.max_row][2].alignment = wrap
     ws4.append([])
-    ws4.append(["Lưu ý: Kết quả dùng để phát triển đội ngũ, KHÔNG dùng xử lý thi đua/kỷ luật. "
-                "Giảng viên được phản hồi trong 03 ngày làm việc kể từ ngày công bố."])
+    ws4.append(["Lưu ý: Nhóm sinh viên được gửi kết luận của Hội đồng và có thể khiếu nại/phản hồi "
+                "trong 03 ngày làm việc kể từ ngày công bố theo Thể lệ Cuộc thi."])
     for w, col in zip([24, 14, 95], "ABC"):
         ws4.column_dimensions[col].width = w
 
@@ -183,29 +184,28 @@ def rubric_to_docx(rubric: dict) -> bytes:
 
     s = get_settings()
     doc = docx.Document()
-    doc.add_heading("RUBRIC CHẤM ĐIỂM – ĐÁNH GIÁ NĂNG LỰC ỨNG DỤNG AI", level=0)
+    doc.add_heading("PHIẾU ĐÁNH GIÁ – CUỘC THI SINH VIÊN NGHIÊN CỨU KHOA HỌC", level=0)
     p = doc.add_paragraph(f"{s.org_name} ({s.org_short}) — Năm {s.program_year} · "
-                          "Dùng cho Hội đồng đánh giá cấp Trường (chấm vòng 2)")
+                          + (rubric.get("label", "") or "Hội đồng đánh giá công trình"))
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    doc.add_paragraph(f"Phiên bản rubric: {rubric.get('version', '')} · Thang điểm 100").alignment = WD_ALIGN_PARAGRAPH.CENTER
+    doc.add_paragraph(f"Phiên bản: {rubric.get('version', '')} · Thang điểm 100").alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-    doc.add_heading("Cấu trúc và trọng số", level=1)
-    t = doc.add_table(rows=1, cols=4)
+    doc.add_heading("Cấu trúc phiếu đánh giá", level=1)
+    t = doc.add_table(rows=1, cols=3)
     t.style = "Light Grid Accent 1"
-    for i, h in enumerate(["Phần", "Nội dung", "Trọng số", "Điểm"]):
+    for i, h in enumerate(["Phần", "Nội dung", "Điểm tối đa"]):
         t.rows[0].cells[i].text = h
     for k, pp in rubric["parts"].items():
         graded = pp.get("graded")
         row = t.add_row().cells
         row[0].text, row[1].text = k, pp["name"]
-        row[2].text = f"{pp['weight']}%" if graded else "–"
-        row[3].text = str(pp["max_score"]) if graded else "Đạt/Không đạt"
+        row[2].text = str(pp["max_score"]) if graded else "–"
 
     for k, pp in _graded_parts(rubric):
-        doc.add_heading(f"Phần {k} — {pp['name']} (trọng số {pp['weight']}%, tối đa {pp['max_score']} điểm)", level=1)
+        doc.add_heading(f"Phần {k} — {pp['name']} (tối đa {pp['max_score']} điểm)", level=1)
         doc.add_paragraph(pp.get("description", ""))
         if pp.get("products"):
-            doc.add_paragraph("Sản phẩm phải nộp:").runs[0].bold = True
+            doc.add_paragraph("Tài liệu/sản phẩm cần có:").runs[0].bold = True
             for pr in pp["products"]:
                 doc.add_paragraph(pr, style="List Bullet")
         ct = doc.add_table(rows=1, cols=6)
@@ -227,17 +227,17 @@ def rubric_to_docx(rubric: dict) -> bytes:
                     for run in para.runs:
                         run.font.size = Pt(9)
 
-    doc.add_heading("Xếp loại năng lực", level=1)
+    doc.add_heading("Xếp loại công trình", level=1)
     lt = doc.add_table(rows=1, cols=3)
     lt.style = "Light Grid Accent 1"
-    for i, h in enumerate(["Mức năng lực", "Điểm", "Định hướng sử dụng kết quả"]):
+    for i, h in enumerate(["Xếp loại", "Điểm", "Ghi chú"]):
         lt.rows[0].cells[i].text = h
     levels = sorted(rubric["classification"], key=lambda x: -x["min"])
     for i, lv in enumerate(levels):
         row = lt.add_row().cells
         row[0].text, row[1].text, row[2].text = lv["label"], _level_range(rubric, i), lv.get("note", "")
 
-    note = doc.add_paragraph("Lưu ý: Kết quả dùng để phát triển đội ngũ, KHÔNG dùng xử lý thi đua/kỷ luật.")
+    note = doc.add_paragraph("Lưu ý: Điểm công trình là điểm trung bình của các thành viên Hội đồng.")
     note.runs[0].font.color.rgb = RGBColor(0xEA, 0x58, 0x0C)
 
     buf = io.BytesIO()

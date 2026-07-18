@@ -26,8 +26,9 @@ def test_login_page_shows_configured_org():
         with TestClient(create_app()) as c:
             html = c.get("/login").text
             assert "Trường Đại học Thử Nghiệm" in html
-            assert "TN AI-Assess" in html
+            assert "TN NCKH-Assess" in html
             assert "Đại Nam" not in html
+            assert "Ngoại thương" not in html
     finally:
         _clear_org()
 
@@ -38,7 +39,8 @@ def test_grading_prompt_uses_configured_org():
         from app.rubric import load_rubric_seed
         from app.services.grading.prompts import system_prompt
 
-        sp = system_prompt("C", load_rubric_seed()["parts"]["C"])
+        tm = load_rubric_seed()["types"]["thuyet_minh"]["parts"]["TM"]
+        sp = system_prompt("TM", tm)
         assert "Trường ZZ (ZZ)" in sp
     finally:
         _clear_org()

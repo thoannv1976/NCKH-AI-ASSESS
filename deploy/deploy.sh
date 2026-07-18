@@ -20,8 +20,8 @@ set -euo pipefail
 
 # ----------------------------- CẤU HÌNH ---------------------------------------
 PROJECT_ID="${PROJECT_ID:-}"                        # BẮT BUỘC: mã dự án GCP của Trường
-ORG_NAME="${ORG_NAME:-Trường Đại học Đại Nam}"      # Tên trường hiển thị trên giao diện/email
-ORG_SHORT="${ORG_SHORT:-DNU}"                       # Tên viết tắt (dùng cho tiêu đề "X AI-Assess")
+ORG_NAME="${ORG_NAME:-Trường Đại học Ngoại thương}"      # Tên trường hiển thị trên giao diện/email
+ORG_SHORT="${ORG_SHORT:-FTU}"                       # Tên viết tắt (dùng cho tiêu đề "X NCKH-Assess")
 PROGRAM_YEAR="${PROGRAM_YEAR:-2026}"                # Năm chương trình
 REGION="${REGION:-asia-southeast1}"                 # Vùng triển khai (Singapore)
 SERVICE="${SERVICE:-ai-assess}"                     # Tên dịch vụ Cloud Run (cũng là tiền tố tài nguyên)
@@ -30,8 +30,8 @@ ADMIN_EMAIL="${ADMIN_EMAIL:-admin@example.edu.vn}"  # Email tài khoản quản 
 GRADING_MODEL="${GRADING_MODEL:-claude-opus-4-8}"   # Model AI dùng để chấm
 BUCKET="${BUCKET:-${PROJECT_ID}-${PREFIX}}"         # Bucket lưu sản phẩm/minh chứng
 ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"          # Khóa Claude API (có thể nạp sau trong app)
-DEADLINE="${DEADLINE:-2026-06-30T17:00:00+07:00}"   # Hạn nộp (admin sửa được trong app)
-OPEN_AT="${OPEN_AT:-2026-06-25T00:00:00+07:00}"     # Mốc mở nộp
+DEADLINE="${DEADLINE:-2026-03-28T17:00:00+07:00}"   # Hạn nộp (admin sửa được trong app)
+OPEN_AT="${OPEN_AT:-2026-02-13T00:00:00+07:00}"     # Mốc mở nộp
 # Email (tùy chọn) — để gửi email thật; bỏ trống = chỉ ghi log trong app
 SMTP_HOST="${SMTP_HOST:-}"; SMTP_PORT="${SMTP_PORT:-587}"
 SMTP_USER="${SMTP_USER:-}"; SMTP_PASSWORD="${SMTP_PASSWORD:-}"
@@ -169,6 +169,6 @@ echo    "------------------------------------------------------------------"
 echo    "Bước tiếp theo:"
 echo    "  1. Mở ${URL} và đăng nhập bằng tài khoản quản trị ở trên."
 echo    "  2. Vào 'Cấu hình AI' nạp/kiểm tra Claude API key (nếu chưa đặt khi cài)."
-echo    "  3. Vào 'Người dùng' → Import danh sách giảng viên (CSV mẫu trong docs/)."
+echo    "  3. Vào 'Người dùng' → Import danh sách chủ nhiệm/nhóm sinh viên (CSV mẫu trong docs/)."
 echo    "  4. Kiểm tra mốc thời gian trong 'Cấu hình' (hạn nộp hiện tại: ${DEADLINE})."
 echo    "  5. Lần cài đầu: vào 'Cấu hình' → 'Nạp lại rubric mới nhất' để chắc chắn dùng rubric mới nhất."

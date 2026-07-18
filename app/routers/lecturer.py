@@ -1,4 +1,4 @@
-"""Phân hệ nộp hồ sơ — dành cho giảng viên."""
+"""Phân hệ nộp hồ sơ công trình NCKH — dành cho chủ nhiệm/nhóm sinh viên."""
 from __future__ import annotations
 
 import re
@@ -9,11 +9,11 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Uplo
 from fastapi.responses import RedirectResponse
 
 from app.config import (
-    GRADED_PARTS, ROLE_ADMIN, ROLE_COUNCIL, ROLE_LECTURER, now_vn, parse_dt,
+    ROLE_ADMIN, ROLE_COUNCIL, ROLE_LECTURER, now_vn, parse_dt,
 )
 from app.auth import require_role
 from app.db import new_id
-from app.rubric import get_rubric
+from app.rubric import default_type, graded_parts, resolve_type, rubric_for, rubric_types
 from app.services import audit
 from app.services.emailer import email_submit_confirmation
 from app.services.grading.engine import invalidate_grading
@@ -29,8 +29,12 @@ def get_submission(store, user: dict) -> dict:
     if not sub:
         sub = {
             "id": new_id(), "user_id": user["id"], "status": "draft",
-            "part_a": {"ho_ten": user.get("ho_ten", ""), "ma_gv": user.get("ma_gv", ""),
-                       "khoa_bo_mon": " - ".join(x for x in [user.get("khoa", ""), user.get("bo_mon", "")] if x)},
+            "part_a": {
+                "ten_cong_trinh": "", "loai": default_type(store),
+                "ho_ten": user.get("ho_ten", ""), "ma_gv": user.get("ma_gv", ""),
+                "khoa_bo_mon": " - ".join(x for x in [user.get("khoa", ""), user.get("bo_mon", "")] if x),
+                "thanh_vien": [], "gvhd": "",
+            },
             "created_at": now_vn().isoformat(),
         }
         store.put("submissions", sub["id"], sub)
@@ -58,7 +62,7 @@ def render(request: Request, template: str, user: dict, **ctx):
 def dashboard(request: Request, user: dict = lecturer_dep):
     store = request.app.state.store
     sub = get_submission(store, user)
-    rubric = get_rubric(store)
+    rubric = rubric_for(store, sub)
     summary = completeness(store, sub)
     items = store.find("submission_items", submission_id=sub["id"])
     tl = get_timeline(store)
@@ -68,7 +72,7 @@ def dashboard(request: Request, user: dict = lecturer_dep):
         deadline_str = tl.get("deadline", "")
     return render(request, "lecturer/dashboard.html", user, sub=sub, rubric=rubric,
                   summary=summary, items=items, timeline=tl, deadline_str=deadline_str,
-                  deadline_passed=deadline_passed(store), parts=GRADED_PARTS)
+                  deadline_passed=deadline_passed(store), parts=graded_parts(rubric))
 
 
 @router.get("/part-a")
@@ -76,42 +80,45 @@ def part_a_form(request: Request, user: dict = lecturer_dep):
     store = request.app.state.store
     sub = get_submission(store, user)
     return render(request, "lecturer/part_a.html", user, sub=sub,
-                  rubric=get_rubric(store), deadline_passed=deadline_passed(store))
+                  rubric=rubric_for(store, sub), rubric_types=rubric_types(store),
+                  deadline_passed=deadline_passed(store))
 
 
 @router.post("/part-a")
 def part_a_save(
     request: Request,
     user: dict = lecturer_dep,
+    ten_cong_trinh: str = Form(""),
+    loai: str = Form(""),
     ho_ten: str = Form(""),
     ma_gv: str = Form(""),
     khoa_bo_mon: str = Form(""),
-    hoc_phan: str = Form(""),
-    cong_cu_ai: str = Form(""),
-    muc_thanh_thao: int = Form(0),
+    gvhd: str = Form(""),
+    thanh_vien: str = Form(""),
 ):
     store = request.app.state.store
     sub = get_submission(store, user)
     ensure_editable(store, sub)
-    tools = [t.strip() for t in re.split(r"[,;\n]", cong_cu_ai) if t.strip()]
+    members = [t.strip() for t in re.split(r"[;\n]", thanh_vien) if t.strip()][:4]
     part_a = {
+        "ten_cong_trinh": ten_cong_trinh.strip(),
+        "loai": resolve_type(store, loai),
         "ho_ten": ho_ten.strip(), "ma_gv": ma_gv.strip(), "khoa_bo_mon": khoa_bo_mon.strip(),
-        "hoc_phan": hoc_phan.strip(), "cong_cu_ai": tools,
-        "muc_thanh_thao": muc_thanh_thao if 1 <= muc_thanh_thao <= 5 else None,
+        "gvhd": gvhd.strip(), "thanh_vien": members,
     }
     store.patch("submissions", sub["id"], {"part_a": part_a})
-    mark_dirty(store, sub)
+    mark_dirty(store, sub)  # đổi loại nghiên cứu có thể đổi bộ tiêu chí → xóa điểm chấm thử cũ
     return RedirectResponse("/lecturer?saved=A", status_code=303)
 
 
 @router.get("/part/{part}")
 def part_page(part: str, request: Request, user: dict = lecturer_dep):
     part = part.upper()
-    if part not in GRADED_PARTS:
-        raise HTTPException(404)
     store = request.app.state.store
     sub = get_submission(store, user)
-    rubric = get_rubric(store)
+    rubric = rubric_for(store, sub)
+    if part not in graded_parts(rubric):
+        raise HTTPException(404)
     items = [i for i in store.find("submission_items", submission_id=sub["id"]) if i["part"] == part]
     return render(request, "lecturer/part_edit.html", user, sub=sub, part=part,
                   part_def=rubric["parts"][part], items=items,
@@ -124,10 +131,10 @@ async def upload_file(part: str, request: Request, kind: str = Form(...),
     """Tải lên MỘT hoặc NHIỀU tệp cùng lúc. Tệp lỗi (sai định dạng/quá 200MB) được bỏ qua
     và báo lại; các tệp hợp lệ vẫn được lưu."""
     part = part.upper()
-    if part not in GRADED_PARTS or kind not in ("product", "evidence"):
-        raise HTTPException(404)
     store, storage = request.app.state.store, request.app.state.storage
     sub = get_submission(store, user)
+    if part not in graded_parts(rubric_for(store, sub)) or kind not in ("product", "evidence"):
+        raise HTTPException(404)
     ensure_editable(store, sub)
 
     chosen = [f for f in (files or []) if f is not None and f.filename]
@@ -172,10 +179,10 @@ async def upload_file(part: str, request: Request, kind: str = Form(...),
 def add_link(part: str, request: Request, kind: str = Form(...), url: str = Form(...),
              label: str = Form(""), user: dict = lecturer_dep):
     part = part.upper()
-    if part not in GRADED_PARTS or kind not in ("product", "evidence"):
-        raise HTTPException(404)
     store = request.app.state.store
     sub = get_submission(store, user)
+    if part not in graded_parts(rubric_for(store, sub)) or kind not in ("product", "evidence"):
+        raise HTTPException(404)
     ensure_editable(store, sub)
     url = url.strip()
     ok, note = check_link(url)
@@ -183,7 +190,7 @@ def add_link(part: str, request: Request, kind: str = Form(...), url: str = Form
     if ok:
         try:
             html = httpx.get(url, timeout=8, follow_redirects=True,
-                             headers={"User-Agent": "DNU-AI-Assess/1.0"}).text
+                             headers={"User-Agent": "FTU-NCKH-Assess/1.0"}).text
             snapshot = re.sub(r"<[^>]+>", " ", html)
             snapshot = re.sub(r"\s+", " ", snapshot)[:20000]
         except Exception:  # noqa: BLE001 — snapshot là best-effort
@@ -238,7 +245,7 @@ def result(request: Request, user: dict = lecturer_dep):
     sub = get_submission(store, user)
     if sub.get("status") != "published":
         return render(request, "lecturer/result.html", user, sub=sub, published=False,
-                      review=None, scores={}, rubric=get_rubric(store), appeal=None, appeal_open=False)
+                      review=None, scores={}, rubric=rubric_for(store, sub), appeal=None, appeal_open=False)
     review = store.get("reviews", sub["id"])
     scores = store.find("scores", submission_id=sub["id"])
     by_part: dict[str, list] = {}
@@ -246,7 +253,7 @@ def result(request: Request, user: dict = lecturer_dep):
         by_part.setdefault(s["part"], []).append(s)
     appeal = store.find_one("appeals", submission_id=sub["id"])
     return render(request, "lecturer/result.html", user, sub=sub, published=True,
-                  review=review, scores=by_part, rubric=get_rubric(store), appeal=appeal,
+                  review=review, scores=by_part, rubric=rubric_for(store, sub), appeal=appeal,
                   appeal_open=appeal_window_open(sub["published_at"]))
 
 

@@ -1,26 +1,21 @@
-"""Test tải sản phẩm dạng ZIP: một giảng viên và toàn bộ giảng viên."""
+"""Test tải sản phẩm dạng ZIP: một công trình và toàn bộ công trình."""
 import io
 import zipfile
 
-from tests.conftest import login, make_docx_bytes
-
-DOCX_CT = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+from tests.conftest import DOCX_CT, fill_part_a, login, make_docx_bytes
 
 
 def _submit_with_files(client, store, email, ma):
     login(client, email)
-    client.post("/lecturer/part-a", data={
-        "ho_ten": "GV " + ma, "ma_gv": ma, "khoa_bo_mon": "CNTT",
-        "hoc_phan": "AI", "cong_cu_ai": "Claude", "muc_thanh_thao": 4,
-    }, follow_redirects=False)
-    client.post("/lecturer/part/B/upload", data={"kind": "product"},
-                files={"files": (f"{ma}_PhanB_DeCuong.docx", make_docx_bytes("Đề cương", ["x"]), DOCX_CT)},
+    fill_part_a(client, ma_gv=ma, ho_ten="SV " + ma, loai="bao_cao_co_ban")
+    client.post("/lecturer/part/I/upload", data={"kind": "product"},
+                files={"files": (f"{ma}_PhanI_BaoCao.docx", make_docx_bytes("Báo cáo", ["x"]), DOCX_CT)},
                 follow_redirects=False)
-    client.post("/lecturer/part/B/upload", data={"kind": "evidence"},
-                files={"files": (f"{ma}_PhanB_NhatKy.docx", make_docx_bytes("Nhật ký", ["y"]), DOCX_CT)},
+    client.post("/lecturer/part/I/upload", data={"kind": "evidence"},
+                files={"files": (f"{ma}_PhanI_TraSoat.docx", make_docx_bytes("Tra soát", ["y"]), DOCX_CT)},
                 follow_redirects=False)
-    client.post("/lecturer/part/C/link", data={"kind": "product", "url": "https://example.com/chatbot",
-                                               "label": "Chatbot"}, follow_redirects=False)
+    client.post("/lecturer/part/II/link", data={"kind": "product", "url": "https://example.com/baibao",
+                                                "label": "Bài kỷ yếu"}, follow_redirects=False)
     client.post("/lecturer/submit", follow_redirects=False)
 
 
@@ -33,12 +28,12 @@ def test_admin_download_single_submission(client, store):
     assert r.headers["content-type"] == "application/zip"
     zf = zipfile.ZipFile(io.BytesIO(r.content))
     names = zf.namelist()
-    assert any("PhanB_SanPham/GV001_PhanB_DeCuong.docx" in n for n in names)
-    assert any("PhanB_MinhChung/GV001_PhanB_NhatKy.docx" in n for n in names)
+    assert any("PhanI_SanPham/GV001_PhanI_BaoCao.docx" in n for n in names)
+    assert any("PhanI_MinhChung/GV001_PhanI_TraSoat.docx" in n for n in names)
     assert any("PhanA_ThongTin.txt" in n for n in names)
-    assert any("LIEN_KET.txt" in n for n in names)  # liên kết Phần C
+    assert any("LIEN_KET.txt" in n for n in names)  # liên kết Phần II
     # nội dung tệp đọc được
-    docx_name = next(n for n in names if n.endswith("GV001_PhanB_DeCuong.docx"))
+    docx_name = next(n for n in names if n.endswith("GV001_PhanI_BaoCao.docx"))
     assert len(zf.read(docx_name)) > 0
 
 

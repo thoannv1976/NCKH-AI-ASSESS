@@ -10,7 +10,7 @@ from fastapi.responses import RedirectResponse
 
 from app.auth import require_role, set_password
 from app.config import ROLE_ADMIN, ROLE_COUNCIL, ROLE_LECTURER, get_settings, now_vn, parse_dt
-from app.rubric import get_rubric, load_rubric_seed, reload_rubric
+from app.rubric import get_rubric, load_rubric_seed, reload_rubric, rubric_types
 from app.security import hash_password
 from app.services import audit
 from app.services.ops import (
@@ -270,7 +270,8 @@ def config_page(request: Request, user: dict = admin_dep):
     graded_count = sum(1 for s in store.all("submissions")
                        if s.get("ai_graded") or s.get("status") in ("graded", "approved", "published"))
     return render(request, "admin/config.html", user, timeline=get_timeline(store),
-                  rubric=get_rubric(store), seed_version=load_rubric_seed().get("version", ""),
+                  rubric=get_rubric(store), rubric_types=rubric_types(store),
+                  seed_version=load_rubric_seed().get("version", ""),
                   graded_count=graded_count, settings=get_settings(),
                   ai_cfg=get_ai_config(store), ai_stats=get_stats(store))
 

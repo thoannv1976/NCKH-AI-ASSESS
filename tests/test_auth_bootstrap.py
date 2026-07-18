@@ -81,8 +81,8 @@ def test_import_csv_sets_default_password(client, store):
     resp = client.post("/admin/users/import", data={"csv_text": csv_text}, follow_redirects=False)
     assert resp.status_code == 303
     client.get("/logout")
-    # mật khẩu mặc định DNU@2026 (DEFAULT_PASSWORD chưa đặt trong test → mặc định)
-    assert client.post("/login", data={"login_id": "imp@dainam.edu.vn", "password": "DNU@2026"},
+    # mật khẩu mặc định FTU@2026 (DEFAULT_PASSWORD chưa đặt trong test → mặc định)
+    assert client.post("/login", data={"login_id": "imp@dainam.edu.vn", "password": "FTU@2026"},
                        follow_redirects=False).status_code == 303
 
 

@@ -5,15 +5,15 @@
 <div class="bg-white rounded-xl shadow p-8 max-w-xl mx-auto text-center">
   <h1 class="text-lg font-bold">Kết quả chưa được công bố</h1>
   <p class="text-sm text-slate-500 mt-2">
-    Hồ sơ của thầy/cô đang ở trạng thái <b>{{ sub.status }}</b>.
-    Kết quả sẽ hiển thị tại đây sau khi Hội đồng phê duyệt và Ban tổ chức công bố (dự kiến sau 10/7/2026).
+    Hồ sơ công trình đang ở trạng thái <b>{{ sub.status }}</b>.
+    Kết quả sẽ hiển thị tại đây sau khi Hội đồng đánh giá và Ban tổ chức công bố.
   </p>
 </div>
 {% else %}
 <div class="flex items-center gap-4 mb-5">
-  <h1 class="text-xl font-bold">Kết quả đánh giá năng lực ứng dụng AI 2026</h1>
+  <h1 class="text-xl font-bold">Kết quả đánh giá công trình SV NCKH {{ PROGRAM_YEAR }}</h1>
   <a href="/reports/profile/{{ sub.id }}" class="ml-auto text-sm bg-slate-700 text-white rounded-lg px-4 py-2 no-print">
-    📄 Hồ sơ năng lực (in/PDF)</a>
+    📄 Phiếu đánh giá (in/PDF)</a>
 </div>
 
 <div class="grid sm:grid-cols-3 gap-4 mb-6">
@@ -22,7 +22,7 @@
     <p class="text-4xl font-extrabold text-orange-700 mt-1">{{ '%g' % review.total_final }}<span class="text-base text-slate-400">/100</span></p>
   </div>
   <div class="bg-white rounded-xl shadow p-5 text-center">
-    <p class="text-xs text-slate-400 uppercase">Mức năng lực</p>
+    <p class="text-xs text-slate-400 uppercase">Xếp loại</p>
     <p class="text-2xl font-bold mt-2">{{ review.classification_label }}</p>
   </div>
   <div class="bg-white rounded-xl shadow p-5 text-center">

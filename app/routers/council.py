@@ -1,4 +1,4 @@
-"""Phân hệ thẩm định — dành cho Hội đồng đánh giá cấp Trường."""
+"""Phân hệ thẩm định — dành cho Hội đồng đánh giá công trình SV NCKH."""
 from __future__ import annotations
 
 import threading
@@ -7,8 +7,8 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
 
 from app.auth import require_role
-from app.config import GRADED_PARTS, ROLE_ADMIN, ROLE_COUNCIL, get_settings, now_vn
-from app.rubric import get_rubric
+from app.config import ROLE_ADMIN, ROLE_COUNCIL, get_settings, now_vn
+from app.rubric import graded_parts, rubric_for
 from app.services import audit
 from app.services.grading.engine import grade_submission
 from app.services.grading.graders import create_grader
@@ -60,7 +60,7 @@ def detail(sid: str, request: Request, user: dict = council_dep):
     if not sub:
         raise HTTPException(404)
     owner = store.get("users", sub["user_id"])
-    rubric = get_rubric(store)
+    rubric = rubric_for(store, sub)
     review = store.get("reviews", sid)
     items = store.find("submission_items", submission_id=sid)
     scores = store.find("scores", submission_id=sid)
@@ -71,7 +71,7 @@ def detail(sid: str, request: Request, user: dict = council_dep):
     appeal = store.find_one("appeals", submission_id=sid)
     return render(request, "council/detail.html", user, sub=sub, owner=owner, rubric=rubric,
                   review=review, items=items, scores=by_part, totals=totals,
-                  total_now=round(sum(totals.values()), 2), parts=GRADED_PARTS, appeal=appeal,
+                  total_now=round(sum(totals.values()), 2), parts=graded_parts(rubric), appeal=appeal,
                   grade_job=sub.get("grade_job") or {})
 
 

@@ -1,26 +1,26 @@
 {% extends "base.html" %}
-{% block title %}Hồ sơ năng lực AI — {{ owner.ho_ten }}{% endblock %}
+{% block title %}Phiếu đánh giá công trình — {{ (sub.part_a or {}).ten_cong_trinh or owner.ho_ten }}{% endblock %}
 {% block content %}
 <div class="no-print mb-4 flex gap-3">
   <button onclick="window.print()" class="bg-slate-700 text-white rounded-lg px-4 py-2 text-sm">🖨 In / Lưu PDF</button>
-  <span class="text-xs text-slate-400 self-center">Dùng Ctrl+P → "Save as PDF" để xuất Hồ sơ năng lực dạng PDF</span>
+  <span class="text-xs text-slate-400 self-center">Dùng Ctrl+P → "Save as PDF" để xuất phiếu đánh giá dạng PDF</span>
 </div>
 
 <div class="bg-white rounded-xl shadow p-8 max-w-3xl mx-auto">
   <div class="text-center border-b pb-5">
     <p class="text-sm font-semibold text-slate-500">{{ ORG_NAME | upper }}</p>
-    <h1 class="text-2xl font-extrabold mt-1 text-orange-700">HỒ SƠ NĂNG LỰC ỨNG DỤNG AI</h1>
-    <p class="text-sm text-slate-500 mt-1">Chương trình khảo sát, đánh giá năng lực ứng dụng AI của giảng viên năm 2026</p>
+    <h1 class="text-2xl font-extrabold mt-1 text-orange-700">PHIẾU ĐÁNH GIÁ CÔNG TRÌNH SV NCKH</h1>
+    <p class="text-sm text-slate-500 mt-1">Cuộc thi Sinh viên nghiên cứu khoa học {{ ORG_NAME }} năm {{ PROGRAM_YEAR }}</p>
   </div>
 
   {% set pa = sub.part_a or {} %}
   <table class="w-full text-sm mt-5">
-    <tr><td class="py-1 text-slate-500 w-44">Họ và tên</td><td class="font-semibold">{{ owner.ho_ten }}</td></tr>
-    <tr><td class="py-1 text-slate-500">Mã giảng viên</td><td>{{ owner.ma_gv }}</td></tr>
-    {% if owner.chuc_vu %}<tr><td class="py-1 text-slate-500">Chức vụ</td><td>{{ owner.chuc_vu }}</td></tr>{% endif %}
-    <tr><td class="py-1 text-slate-500">Đơn vị / Bộ môn</td><td>{{ pa.khoa_bo_mon or owner.khoa }}</td></tr>
-    <tr><td class="py-1 text-slate-500">Học phần thực hiện</td><td>{{ pa.hoc_phan }}</td></tr>
-    <tr><td class="py-1 text-slate-500">Công cụ AI sử dụng</td><td>{{ (pa.cong_cu_ai or []) | join(', ') }}</td></tr>
+    <tr><td class="py-1 text-slate-500 w-44">Tên công trình</td><td class="font-semibold">{{ pa.ten_cong_trinh }}</td></tr>
+    <tr><td class="py-1 text-slate-500">Loại nghiên cứu</td><td>{{ rubric.label or pa.loai }}</td></tr>
+    <tr><td class="py-1 text-slate-500">Chủ nhiệm</td><td class="font-semibold">{{ owner.ho_ten or pa.ho_ten }} — MSSV: {{ owner.ma_gv or pa.ma_gv }}</td></tr>
+    <tr><td class="py-1 text-slate-500">Đơn vị (Viện/Khoa/Cơ sở)</td><td>{{ pa.khoa_bo_mon or owner.khoa }}</td></tr>
+    <tr><td class="py-1 text-slate-500">Thành viên nhóm</td><td>{{ pa.thanh_vien | join('; ') if pa.thanh_vien is not string else (pa.thanh_vien or '') }}</td></tr>
+    <tr><td class="py-1 text-slate-500">Giảng viên hướng dẫn</td><td>{{ pa.gvhd }}</td></tr>
   </table>
 
   {% if review and review.total_final is not none %}
@@ -30,7 +30,7 @@
       <p class="text-4xl font-extrabold text-orange-700">{{ '%g' % review.total_final }}<span class="text-lg text-slate-400">/100</span></p>
     </div>
     <div class="border-2 border-orange-600 rounded-xl p-4 text-center">
-      <p class="text-xs uppercase text-slate-400">Mức năng lực</p>
+      <p class="text-xs uppercase text-slate-400">Xếp loại</p>
       <p class="text-2xl font-bold mt-2">{{ review.classification_label }}</p>
     </div>
   </div>

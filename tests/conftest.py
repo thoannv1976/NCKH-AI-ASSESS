@@ -77,6 +77,35 @@ def login(client: TestClient, email: str, password: str = TEST_PW) -> None:
     assert resp.status_code == 303, resp.text
 
 
+DOCX_CT = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+
+def fill_part_a(client: TestClient, *, ten="Đề tài NCKH mẫu", loai="thuyet_minh",
+                ho_ten="Nguyễn Văn An", ma_gv="GV001", khoa_bo_mon="Viện KT&KDQT",
+                gvhd="PGS. TS. Vũ Hoàng Nam", thanh_vien="Trần Thị B - 2211110003") -> None:
+    """Kê khai Phần A (thông tin công trình) cho người đang đăng nhập."""
+    resp = client.post("/lecturer/part-a", data={
+        "ten_cong_trinh": ten, "loai": loai, "ho_ten": ho_ten, "ma_gv": ma_gv,
+        "khoa_bo_mon": khoa_bo_mon, "gvhd": gvhd, "thanh_vien": thanh_vien,
+    }, follow_redirects=False)
+    assert resp.status_code == 303, resp.text
+
+
+def graded_parts_for(store, loai: str = "thuyet_minh") -> list[str]:
+    from app.rubric import get_rubric, graded_parts
+    return graded_parts(get_rubric(store, loai))
+
+
+def upload_all_parts(client: TestClient, store, ma_gv="GV001", loai="thuyet_minh") -> None:
+    """Nộp một tài liệu sản phẩm cho mỗi phần được chấm của loại công trình."""
+    for part in graded_parts_for(store, loai):
+        data = make_docx_bytes(f"Tài liệu phần {part}", ["Nội dung chi tiết của công trình NCKH."])
+        resp = client.post(f"/lecturer/part/{part}/upload", data={"kind": "product"},
+                           files={"files": (f"{ma_gv}_Phan{part}_TaiLieu.docx", data, DOCX_CT)},
+                           follow_redirects=False)
+        assert resp.status_code == 303, resp.text
+
+
 def make_docx_bytes(title: str, lines: list[str]) -> bytes:
     import docx
 
