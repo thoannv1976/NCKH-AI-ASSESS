@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ APP_TITLE }}{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, Arial, sans-serif; }
+    [x-cloak] { display: none !important; }
+    @media print { .no-print { display: none !important; } }
+  </style>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800">
+<nav class="bg-orange-700 text-white shadow no-print">
+  <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center gap-4">
+    <a href="/" class="font-bold text-lg tracking-wide">🎓 {{ APP_TITLE }}</a>
+    <span class="text-orange-100 text-sm hidden sm:inline">Đánh giá năng lực ứng dụng AI của giảng viên — {{ PROGRAM_YEAR }}</span>
+    <div class="ml-auto flex items-center gap-3 text-sm">
+      {% if user %}
+        {% if user.role == 'lecturer' %}
+          <a class="hover:underline" href="/lecturer">Hồ sơ của tôi</a>
+          <a class="hover:underline" href="/lecturer/result">Kết quả</a>
+        {% elif user.role == 'council' %}
+          <a class="hover:underline" href="/council">Thẩm định</a>
+          <a class="hover:underline" href="/council/appeals">Phản hồi</a>
+          <a class="hover:underline" href="/reports/scores">Bảng điểm</a>
+          <a class="hover:underline" href="/reports">Báo cáo</a>
+        {% elif user.role == 'admin' %}
+          <a class="hover:underline" href="/admin">Vận hành</a>
+          <a class="hover:underline" href="/admin/users">Người dùng</a>
+          <a class="hover:underline" href="/admin/tracking">Tình trạng nộp</a>
+          <a class="hover:underline" href="/admin/config#ai">Cấu hình AI</a>
+          <a class="hover:underline" href="/admin/downloads">Tải sản phẩm</a>
+          <a class="hover:underline" href="/council">Thẩm định</a>
+          <a class="hover:underline" href="/reports/scores">Bảng điểm</a>
+          <a class="hover:underline" href="/reports">Báo cáo</a>
+        {% endif %}
+        <span class="bg-orange-800 rounded px-2 py-1">{{ user.ho_ten or user.email }}
+          <span class="opacity-75">({{ {'lecturer':'Giảng viên','council':'Hội đồng','admin':'Quản trị'}[user.role] }})</span>
+        </span>
+        <a class="hover:underline" href="/change-password">Đổi mật khẩu</a>
+        <a class="hover:underline" href="/logout">Thoát</a>
+      {% endif %}
+    </div>
+  </div>
+</nav>
+{% if app_mode == 'local' %}
+<div class="bg-amber-100 text-amber-900 text-center text-xs py-1 no-print">
+  Chế độ thử nghiệm (local) — dữ liệu lưu cục bộ, email ghi log
+</div>
+{% endif %}
+<main class="max-w-6xl mx-auto px-4 py-6">
+  {% block content %}{% endblock %}
+</main>
+<footer class="text-center text-xs text-slate-400 pb-6 no-print">
+  {{ ORG_NAME }} — Chương trình đánh giá năng lực ứng dụng AI của giảng viên năm {{ PROGRAM_YEAR }}
+</footer>
+</body>
+</html>

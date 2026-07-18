@@ -1,0 +1,7 @@
+pytest>=8.0
+ruff>=0.4
+
+# Sinh tài liệu hướng dẫn (scripts/gen_huongdan.py)
+weasyprint>=60
+pymupdf>=1.24
+pillow>=10

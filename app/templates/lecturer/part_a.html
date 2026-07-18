@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Phần A — Thông tin chung{% endblock %}
+{% block content %}
+{% set pa = sub.part_a or {} %}
+<a href="/lecturer" class="text-sm text-slate-500 hover:underline">← Quay lại hồ sơ</a>
+<div class="bg-white rounded-xl shadow p-6 mt-3 max-w-2xl">
+  <h1 class="text-lg font-bold">Phần A — Thông tin chung</h1>
+  <p class="text-sm text-slate-500 mt-1">{{ rubric.parts.A.description }}</p>
+  <form method="post" action="/lecturer/part-a" class="mt-5 space-y-4">
+    <div class="grid sm:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium">Họ và tên *</label>
+        <input name="ho_ten" value="{{ pa.ho_ten or '' }}" required class="mt-1 w-full border rounded-lg px-3 py-2">
+      </div>
+      <div>
+        <label class="block text-sm font-medium">Mã giảng viên *</label>
+        <input name="ma_gv" value="{{ pa.ma_gv or '' }}" required placeholder="GV001" class="mt-1 w-full border rounded-lg px-3 py-2">
+      </div>
+    </div>
+    <div>
+      <label class="block text-sm font-medium">Đơn vị / Bộ môn *</label>
+      <input name="khoa_bo_mon" value="{{ pa.khoa_bo_mon or '' }}" required class="mt-1 w-full border rounded-lg px-3 py-2">
+    </div>
+    <div>
+      <label class="block text-sm font-medium">Học phần đăng ký thực hiện đề bài *</label>
+      <input name="hoc_phan" value="{{ pa.hoc_phan or '' }}" required
+             placeholder="Thuộc kế hoạch giảng dạy năm học 2026–2027 (ưu tiên học kỳ I)"
+             class="mt-1 w-full border rounded-lg px-3 py-2">
+    </div>
+    <div>
+      <label class="block text-sm font-medium">Danh mục công cụ AI dự kiến sử dụng *</label>
+      <textarea name="cong_cu_ai" rows="3" required placeholder="Mỗi công cụ một dòng hoặc phân cách bằng dấu phẩy. Ví dụ: Claude, ChatGPT, Gamma, NotebookLM"
+                class="mt-1 w-full border rounded-lg px-3 py-2">{{ (pa.cong_cu_ai or []) | join(', ') }}</textarea>
+    </div>
+    <div>
+      <label class="block text-sm font-medium">Mức độ thành thạo AI tự đánh giá (thang 5 mức) *</label>
+      <div class="flex gap-4 mt-2 text-sm">
+        {% for i in range(1, 6) %}
+        <label class="flex items-center gap-1.5">
+          <input type="radio" name="muc_thanh_thao" value="{{ i }}" required
+                 {{ 'checked' if pa.muc_thanh_thao == i }}>
+          <span>{{ i }} — {{ ['Mới bắt đầu','Cơ bản','Trung bình','Khá','Thành thạo'][i-1] }}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    {% if not deadline_passed %}
+    <button class="bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg px-6 py-2.5">Lưu Phần A</button>
+    {% else %}
+    <p class="text-sm text-red-600">Đã hết hạn — không thể chỉnh sửa.</p>
+    {% endif %}
+  </form>
+</div>
+{% endblock %}

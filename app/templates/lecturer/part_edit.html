@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Phần {{ part }} — {{ part_def.name }}{% endblock %}
+{% block content %}
+<a href="/lecturer" class="text-sm text-slate-500 hover:underline">← Quay lại hồ sơ</a>
+{% set q = request.query_params %}
+{% if q.get('uploaded') is not none %}
+<div class="mt-3 bg-emerald-50 border border-emerald-300 text-emerald-800 rounded-lg p-3 text-sm">
+  ✅ Đã tải lên {{ q.get('uploaded') }} tệp.
+  {% if q.get('upload_errors') %}<div class="text-red-600 mt-1">Bỏ qua: {{ q.get('upload_errors') }}</div>{% endif %}
+</div>
+{% endif %}
+<div class="mt-3 grid lg:grid-cols-3 gap-5">
+  <!-- Yêu cầu -->
+  <div class="bg-white rounded-xl shadow p-5 lg:col-span-1">
+    <h1 class="font-bold">Phần {{ part }} — {{ part_def.name }}</h1>
+    <p class="text-xs text-slate-500 mt-1">Trọng số {{ part_def.weight }}% — tối đa {{ part_def.max_score }} điểm</p>
+    <p class="text-sm mt-3 whitespace-pre-line">{{ part_def.description }}</p>
+    <h3 class="font-semibold text-sm mt-4">Sản phẩm phải nộp:</h3>
+    <ul class="list-disc ml-5 text-sm text-slate-600 mt-1">
+      {% for p in part_def.products %}<li>{{ p }}</li>{% endfor %}
+    </ul>
+    {% if part_def.evidences %}
+    <h3 class="font-semibold text-sm mt-3">Minh chứng bắt buộc:</h3>
+    <ul class="list-disc ml-5 text-sm text-slate-600 mt-1">
+      {% for e in part_def.evidences %}<li>{{ e }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+    <div class="mt-4 bg-orange-50 rounded-lg p-3 text-xs text-orange-800">
+      Tên tệp theo cấu trúc <b>{{ ma_gv or 'MãGV' }}_Phan{{ part }}_TênSảnPhẩm</b>.
+      Định dạng: docx, pdf, pptx, xlsx, mp4 — tối đa 200MB/tệp.
+      Sản phẩm thiếu minh chứng bị trừ tối đa 50% điểm tiêu chí liên quan.
+    </div>
+  </div>
+
+  <!-- Nộp bài -->
+  <div class="lg:col-span-2 space-y-5">
+    {% for kind, label, icon in [('product', 'Sản phẩm', '📄'), ('evidence', 'Minh chứng sử dụng AI', '🔎')] %}
+    {% if kind != 'evidence' or part != 'G' %}
+    <div class="bg-white rounded-xl shadow p-5">
+      <h2 class="font-semibold">{{ icon }} {{ label }}</h2>
+      <div class="mt-3 space-y-2">
+        {% set kind_items = items | selectattr('kind', 'equalto', kind) | list %}
+        {% for it in kind_items %}
+        <div class="flex items-center gap-3 border rounded-lg px-3 py-2 text-sm">
+          {% if it.type == 'file' %}
+            <a href="/file/{{ it.id }}" class="text-orange-700 hover:underline font-medium truncate">{{ it.original_name }}</a>
+            <span class="text-xs text-slate-400 whitespace-nowrap">{{ (it.size / 1048576) | round(1) }} MB</span>
+          {% else %}
+            <a href="{{ it.url }}" target="_blank" rel="noopener" class="text-orange-700 hover:underline font-medium truncate">🔗 {{ it.original_name }}</a>
+            <span class="text-xs {{ 'text-emerald-600' if it.link_ok else 'text-red-500' }} whitespace-nowrap">{{ it.link_note }}</span>
+          {% endif %}
+          {% if it.naming_warning %}<span class="text-xs text-amber-600" title="{{ it.naming_warning }}">⚠ tên tệp</span>{% endif %}
+          {% if not deadline_passed and sub.status in ('draft','submitted') %}
+          <form method="post" action="/lecturer/item/{{ it.id }}/delete" class="ml-auto"
+                onsubmit="return confirm('Xóa mục này?')">
+            <button class="text-red-500 text-xs hover:underline">Xóa</button>
+          </form>
+          {% endif %}
+        </div>
+        {% else %}
+        <p class="text-sm text-slate-400">Chưa có {{ label | lower }} nào.</p>
+        {% endfor %}
+      </div>
+
+      {% if not deadline_passed and sub.status in ('draft','submitted') %}
+      <div class="mt-4 grid sm:grid-cols-2 gap-4">
+        <form method="post" action="/lecturer/part/{{ part }}/upload" enctype="multipart/form-data" class="border-2 border-dashed rounded-lg p-3">
+          <input type="hidden" name="kind" value="{{ kind }}">
+          <label class="text-xs font-semibold text-slate-500 uppercase">Tải tệp lên (chọn được nhiều tệp)</label>
+          <input type="file" name="files" required multiple accept=".docx,.pdf,.pptx,.xlsx,.mp4"
+                 class="block w-full text-sm mt-1.5"
+                 onchange="for (const f of this.files) { if (f.size > 209715200) { alert('Tệp ' + f.name + ' vượt 200MB'); this.value=''; break; } }">
+          <button class="mt-2 bg-slate-700 hover:bg-slate-800 text-white text-sm rounded-lg px-4 py-1.5">Tải lên</button>
+          <p class="text-[11px] text-slate-400 mt-1">Có thể giữ Ctrl/Shift để chọn nhiều tệp một lần.</p>
+        </form>
+        <form method="post" action="/lecturer/part/{{ part }}/link" class="border-2 border-dashed rounded-lg p-3">
+          <input type="hidden" name="kind" value="{{ kind }}">
+          <label class="text-xs font-semibold text-slate-500 uppercase">Hoặc dán liên kết (chatbot, hội thoại AI, video...)</label>
+          <input name="url" type="url" required placeholder="https://..." class="w-full border rounded-lg px-3 py-1.5 text-sm mt-1.5">
+          <input name="label" placeholder="Tên mô tả (tùy chọn)" class="w-full border rounded-lg px-3 py-1.5 text-sm mt-1.5">
+          <button class="mt-2 bg-slate-700 hover:bg-slate-800 text-white text-sm rounded-lg px-4 py-1.5">Thêm liên kết</button>
+          <p class="text-[11px] text-slate-400 mt-1">Liên kết phải ở chế độ cho phép truy cập — hệ thống kiểm tra ngay khi thêm.</p>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+    {% endfor %}
+    {% if part == 'G' %}
+    <div class="bg-orange-50 rounded-xl p-4 text-sm text-orange-900">
+      Phần G: chính <b>danh mục minh chứng</b> là sản phẩm của phần này — hệ thống sẽ tự động đối chiếu
+      danh mục với minh chứng thầy/cô đã nộp ở các Phần B–F khi chấm.
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Hồ sơ năng lực AI — {{ owner.ho_ten }}{% endblock %}
+{% block content %}
+<div class="no-print mb-4 flex gap-3">
+  <button onclick="window.print()" class="bg-slate-700 text-white rounded-lg px-4 py-2 text-sm">🖨 In / Lưu PDF</button>
+  <span class="text-xs text-slate-400 self-center">Dùng Ctrl+P → "Save as PDF" để xuất Hồ sơ năng lực dạng PDF</span>
+</div>
+
+<div class="bg-white rounded-xl shadow p-8 max-w-3xl mx-auto">
+  <div class="text-center border-b pb-5">
+    <p class="text-sm font-semibold text-slate-500">{{ ORG_NAME | upper }}</p>
+    <h1 class="text-2xl font-extrabold mt-1 text-orange-700">HỒ SƠ NĂNG LỰC ỨNG DỤNG AI</h1>
+    <p class="text-sm text-slate-500 mt-1">Chương trình khảo sát, đánh giá năng lực ứng dụng AI của giảng viên năm 2026</p>
+  </div>
+
+  {% set pa = sub.part_a or {} %}
+  <table class="w-full text-sm mt-5">
+    <tr><td class="py-1 text-slate-500 w-44">Họ và tên</td><td class="font-semibold">{{ owner.ho_ten }}</td></tr>
+    <tr><td class="py-1 text-slate-500">Mã giảng viên</td><td>{{ owner.ma_gv }}</td></tr>
+    {% if owner.chuc_vu %}<tr><td class="py-1 text-slate-500">Chức vụ</td><td>{{ owner.chuc_vu }}</td></tr>{% endif %}
+    <tr><td class="py-1 text-slate-500">Đơn vị / Bộ môn</td><td>{{ pa.khoa_bo_mon or owner.khoa }}</td></tr>
+    <tr><td class="py-1 text-slate-500">Học phần thực hiện</td><td>{{ pa.hoc_phan }}</td></tr>
+    <tr><td class="py-1 text-slate-500">Công cụ AI sử dụng</td><td>{{ (pa.cong_cu_ai or []) | join(', ') }}</td></tr>
+  </table>
+
+  {% if review and review.total_final is not none %}
+  <div class="grid grid-cols-2 gap-4 mt-6">
+    <div class="border-2 border-orange-600 rounded-xl p-4 text-center">
+      <p class="text-xs uppercase text-slate-400">Tổng điểm</p>
+      <p class="text-4xl font-extrabold text-orange-700">{{ '%g' % review.total_final }}<span class="text-lg text-slate-400">/100</span></p>
+    </div>
+    <div class="border-2 border-orange-600 rounded-xl p-4 text-center">
+      <p class="text-xs uppercase text-slate-400">Mức năng lực</p>
+      <p class="text-2xl font-bold mt-2">{{ review.classification_label }}</p>
+    </div>
+  </div>
+  <p class="text-sm text-slate-600 mt-3"><b>Định hướng phát triển:</b> {{ level_note }}</p>
+
+  <h2 class="font-bold mt-6 mb-2">Điểm thành phần theo phần</h2>
+  <table class="w-full text-sm border">
+    <thead><tr class="bg-slate-50 text-left">
+      <th class="border px-3 py-1.5">Phần</th><th class="border px-3 py-1.5">Nội dung</th>
+      <th class="border px-3 py-1.5 text-center">Điểm</th><th class="border px-3 py-1.5 text-center">Tối đa</th>
+    </tr></thead>
+    <tbody>
+      {% for p in parts %}
+      <tr>
+        <td class="border px-3 py-1.5 font-medium">{{ p }}</td>
+        <td class="border px-3 py-1.5">{{ rubric.parts[p].name }}</td>
+        <td class="border px-3 py-1.5 text-center font-bold">{{ '%g' % review.part_totals.get(p, 0) }}</td>
+        <td class="border px-3 py-1.5 text-center text-slate-400">{{ rubric.parts[p].max_score }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2 class="font-bold mt-6 mb-2">Nhận xét chi tiết theo tiêu chí</h2>
+  {% for part, rows in scores.items() %}
+  <h3 class="font-semibold text-sm mt-3">Phần {{ part }} — {{ rubric.parts[part].name }}</h3>
+  <table class="w-full text-xs border mt-1">
+    {% for s in rows %}
+    <tr>
+      <td class="border px-2 py-1 w-14 font-medium">{{ s.criterion_id }}</td>
+      <td class="border px-2 py-1 w-16 text-center font-bold">{{ '%g' % s.final_score }}/{{ s.max }}</td>
+      <td class="border px-2 py-1 text-slate-600">{{ s.ai_comment }}
+        {% if s.council_comment %}<div class="text-blue-700 mt-0.5">Hội đồng: {{ s.council_comment }}</div>{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% endfor %}
+  {% else %}
+  <p class="text-center text-slate-400 mt-8">Hồ sơ chưa có kết quả phê duyệt.</p>
+  {% endif %}
+
+  <p class="text-xs text-slate-400 mt-8 text-center">
+    Kết quả do hệ thống {{ APP_TITLE }} chấm bằng AI và Hội đồng đánh giá cấp Trường phê duyệt ·
+    Xuất ngày {{ now.strftime('%d/%m/%Y') }}
+  </p>
+</div>
+{% endblock %}

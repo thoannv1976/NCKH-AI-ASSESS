@@ -1,0 +1,19 @@
+ma_gv,ho_ten,email,don_vi,bo_mon,chuc_vu,role,password
+GV001,Nguyễn Văn An,gv001@dainam.edu.vn,Công nghệ thông tin,Kỹ thuật phần mềm,Giảng viên,lecturer,
+GV002,Trần Thị Bình,gv002@dainam.edu.vn,Công nghệ thông tin,Hệ thống thông tin,Trưởng bộ môn,lecturer,
+GV003,Lê Minh Châu,gv003@dainam.edu.vn,Công nghệ thông tin,Khoa học máy tính,Giảng viên,lecturer,
+GV004,Phạm Quốc Dũng,gv004@dainam.edu.vn,Quản trị kinh doanh,Marketing,Phó Trưởng khoa,lecturer,
+GV005,Hoàng Thị En,gv005@dainam.edu.vn,Quản trị kinh doanh,Quản trị nhân lực,Giảng viên,lecturer,
+GV006,Vũ Đức Giang,gv006@dainam.edu.vn,Kế toán,Kế toán doanh nghiệp,Giảng viên,lecturer,
+GV007,Đỗ Thị Hoa,gv007@dainam.edu.vn,Kế toán,Kiểm toán,Trưởng bộ môn,lecturer,
+GV008,Bùi Văn Hùng,gv008@dainam.edu.vn,Ngôn ngữ Anh,Biên - Phiên dịch,Giảng viên,lecturer,
+GV009,Ngô Thị Lan,gv009@dainam.edu.vn,Ngôn ngữ Anh,Tiếng Anh thương mại,Giảng viên,lecturer,
+GV010,Đặng Minh Khoa,gv010@dainam.edu.vn,Dược,Dược lý,Giảng viên,lecturer,
+GV011,Trịnh Thị Mai,gv011@dainam.edu.vn,Dược,Bào chế,Giảng viên chính,lecturer,
+GV012,Lý Văn Nam,gv012@dainam.edu.vn,Y khoa,Nội cơ sở,Trưởng khoa,lecturer,
+GV013,Phan Thị Oanh,gv013@dainam.edu.vn,Luật,Luật kinh tế,Giảng viên,lecturer,
+GV014,Tạ Quang Phú,gv014@dainam.edu.vn,Xây dựng,Kết cấu công trình,Giảng viên,lecturer,
+GV015,Mai Thị Quỳnh,gv015@dainam.edu.vn,Du lịch,Quản trị lữ hành,Giảng viên,lecturer,
+HD001,Nguyễn Hội Đồng,hoidong1@dainam.edu.vn,Hội đồng đánh giá,,Chủ tịch Hội đồng,council,HoiDong@2026
+HD002,Trần Thẩm Định,hoidong2@dainam.edu.vn,Hội đồng đánh giá,,Thành viên Hội đồng,council,HoiDong@2026
+QT001,Quản Trị Viên,admin@dainam.edu.vn,Phòng Khảo thí & ĐBCL,,Quản trị hệ thống,admin,Admin@2026

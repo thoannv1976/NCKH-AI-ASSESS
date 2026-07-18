@@ -1,0 +1,403 @@
+{
+  "version": "2026.2",
+  "parts": {
+    "A": {
+      "name": "Thông tin chung",
+      "weight": 0,
+      "max_score": 0,
+      "graded": false,
+      "description": "Kê khai thông tin trên hệ thống: họ tên, mã giảng viên, khoa/bộ môn, học phần đăng ký thực hiện đề bài (thuộc kế hoạch giảng dạy năm học 2026–2027), danh mục công cụ AI dự kiến sử dụng và mức độ thành thạo tự đánh giá (thang 5 mức). Phần A là điều kiện hợp lệ của hồ sơ, không tính điểm.",
+      "products": [
+        "Phiếu thông tin điện tử (điền trực tiếp trên hệ thống)"
+      ],
+      "evidences": [],
+      "criteria": []
+    },
+    "B": {
+      "name": "Phát triển chương trình đào tạo và học phần",
+      "weight": 20,
+      "max_score": 20,
+      "graded": true,
+      "description": "Sử dụng AI để rà soát và cập nhật đề cương chi tiết 01 học phần năm học 2026–2027 (CLO, tương thích PLO, ma trận CLO–PLO, kế hoạch giảng dạy theo tuần, phương pháp dạy học và đánh giá, danh mục học liệu). Dùng AI đối sánh nội dung học phần với xu hướng nghề nghiệp, yêu cầu doanh nghiệp hoặc chương trình của ít nhất 02 trường đại học trong/ngoài nước; đề xuất tối thiểu 03 điểm cải tiến.",
+      "products": [
+        "Đề cương chi tiết học phần đã cập nhật (bản đầy đủ)",
+        "Bảng so sánh trước – sau khi cập nhật, nêu rõ nội dung do AI đề xuất và lý do chấp nhận/điều chỉnh",
+        "Báo cáo đối sánh và đề xuất cải tiến (2–4 trang)"
+      ],
+      "evidences": [
+        "Nhật ký prompt hoặc liên kết hội thoại với AI cho từng nhiệm vụ; ghi rõ công cụ sử dụng"
+      ],
+      "criteria": [
+        {
+          "id": "B1",
+          "max": 8,
+          "name": "Chất lượng đề cương cập nhật: CLO rõ ràng, đo lường được, tương thích PLO",
+          "guide": "Đánh giá: CLO viết theo động từ đo lường được (Bloom); ma trận CLO–PLO logic, đầy đủ; kế hoạch giảng dạy theo tuần khả thi; phương pháp dạy học và đánh giá tương thích CLO; danh mục học liệu cập nhật. Mức cao (7–8): đầy đủ, nhất quán, chuyên nghiệp. Mức khá (5–6.5): đầy đủ nhưng còn vài CLO chưa đo lường được hoặc ma trận sơ sài. Mức trung bình (3–4.5): thiếu một số thành phần hoặc CLO chung chung. Mức thấp (0–2.5): đề cương sơ sài, không thể hiện việc rà soát cập nhật.",
+          "levels": {
+            "xuat_sac": "CLO chuẩn SMART, ma trận CLO–PLO đầy đủ, kế hoạch tuần chi tiết",
+            "dat": "CLO rõ, ma trận tương đối đầy đủ, vài chỗ chưa chi tiết",
+            "co_ban": "Có CLO nhưng chưa đo lường được hoặc thiếu ma trận CLO–PLO",
+            "chua_dat": "Đề cương sơ sài, không có CLO/ma trận"
+          }
+        },
+        {
+          "id": "B2",
+          "max": 6,
+          "name": "Chất lượng đối sánh và tính khả thi của các đề xuất cải tiến",
+          "guide": "Đánh giá: có đối sánh với ≥02 chương trình trong/ngoài nước hoặc yêu cầu doanh nghiệp/xu hướng nghề nghiệp; nguồn đối sánh ghi rõ; ≥03 đề xuất cải tiến cụ thể, khả thi, gắn với kết quả đối sánh. Mức cao (5–6): đối sánh sâu, nguồn tin cậy, đề xuất thuyết phục. Mức khá (3.5–4.5): đủ yêu cầu nhưng phân tích còn mỏng. Mức trung bình (2–3): đối sánh hình thức, đề xuất chung chung. Mức thấp (0–1.5): thiếu đối sánh hoặc thiếu đề xuất.",
+          "levels": {
+            "xuat_sac": "Đối sánh ≥2 trường, ≥3 đề xuất cụ thể, khả thi, có dẫn chứng",
+            "dat": "Đối sánh đủ, đề xuất hợp lý nhưng chưa thật cụ thể",
+            "co_ban": "Đối sánh 1 nguồn hoặc đề xuất chung chung",
+            "chua_dat": "Không đối sánh / không có đề xuất"
+          }
+        },
+        {
+          "id": "B3",
+          "max": 4,
+          "name": "Mức độ khai thác AI: prompt có chiều sâu, có phản biện và tinh chỉnh kết quả AI",
+          "guide": "Dựa trên nhật ký prompt/hội thoại: chuỗi prompt thể hiện kỹ thuật (cung cấp ngữ cảnh, ràng buộc, lặp tinh chỉnh); có phản biện/kiểm chứng và điều chỉnh kết quả AI thay vì sao chép nguyên văn. Mức cao (3.5–4): prompt nhiều bước, có phản biện rõ. Mức khá (2.5–3): có tinh chỉnh nhưng ít phản biện. Mức trung bình (1.5–2): prompt đơn giản một bước. Mức thấp (0–1): không thể hiện quá trình làm việc với AI.",
+          "levels": {
+            "xuat_sac": "Prompt nhiều bước, có phản biện và tinh chỉnh rõ rệt kết quả AI",
+            "dat": "Khai thác AI tốt, có chỉnh sửa kết quả",
+            "co_ban": "Dùng AI ở mức cơ bản, ít chỉnh sửa",
+            "chua_dat": "Không thể hiện việc dùng AI"
+          }
+        },
+        {
+          "id": "B4",
+          "max": 2,
+          "name": "Minh chứng đầy đủ, trung thực, có thể kiểm chứng",
+          "guide": "Minh chứng (nhật ký prompt, liên kết hội thoại, ảnh chụp, tên công cụ + phiên bản) đầy đủ cho từng nhiệm vụ, nhất quán với sản phẩm, truy cập/kiểm chứng được.",
+          "is_evidence_criterion": true,
+          "levels": {
+            "xuat_sac": "Minh chứng đầy đủ, có link truy cập được, trung thực",
+            "dat": "Minh chứng khá đầy đủ, một vài chỗ thiếu",
+            "co_ban": "Minh chứng rời rạc, khó kiểm chứng",
+            "chua_dat": "Không có minh chứng"
+          }
+        }
+      ]
+    },
+    "C": {
+      "name": "Giảng dạy và hỗ trợ học tập",
+      "weight": 40,
+      "max_score": 40,
+      "graded": true,
+      "description": "C1: Thiết kế kế hoạch bài giảng (giáo án) 01 buổi học tích hợp AI vào ít nhất 02 hoạt động dạy–học. C2: Dùng AI xây dựng bộ học liệu số (slide ≥15 trang + ≥01 học liệu bổ trợ). C3: Xây dựng 01 trợ lý AI hỗ trợ sinh viên tự học (chatbot tùy biến HOẶC bộ ≥10 prompt kèm hướng dẫn). C4: Thiết kế phương án dạy học phân hóa/cá nhân hóa có sử dụng AI cho 02 nhóm sinh viên trình độ khác nhau.",
+      "products": [
+        "Kế hoạch bài giảng tích hợp AI (C1)",
+        "Bộ slide ≥15 trang và ≥01 học liệu bổ trợ: infographic, video ngắn, bài đọc tóm tắt, sơ đồ tư duy... (C2)",
+        "Liên kết truy cập chatbot HOẶC tài liệu bộ prompt (≥10 prompt) kèm hướng dẫn sử dụng (C3)",
+        "Bản thiết kế phương án dạy học phân hóa, 2–3 trang (C4)"
+      ],
+      "evidences": [
+        "Nhật ký prompt/liên kết hội thoại cho từng nhiệm vụ C1–C4",
+        "Với C3: ảnh chụp màn hình hội thoại thử nghiệm giữa 'sinh viên' và trợ lý AI"
+      ],
+      "criteria": [
+        {
+          "id": "C1",
+          "max": 10,
+          "name": "Kế hoạch bài giảng: mục tiêu rõ, hoạt động tích hợp AI hợp lý, khả thi",
+          "guide": "Giáo án 01 buổi học thuộc học phần đã đăng ký: mục tiêu buổi học rõ, gắn CLO; tích hợp AI vào ≥02 hoạt động (khởi động, thảo luận, thực hành, củng cố...) một cách hợp lý, nêu rõ công cụ và cách dùng; tiến trình khả thi về thời gian. Mức cao (8.5–10): hoạt động AI gắn chặt mục tiêu, mô tả chi tiết, khả thi. Mức khá (6.5–8): đủ 2 hoạt động nhưng mô tả chưa sâu. Mức trung bình (4–6): tích hợp AI hình thức. Mức thấp (0–3.5): không đạt yêu cầu tối thiểu.",
+          "levels": {
+            "xuat_sac": "Mục tiêu rõ, ≥2 hoạt động tích hợp AI hợp lý, khả thi cao",
+            "dat": "Mục tiêu rõ, có tích hợp AI nhưng 1 phần chưa sâu",
+            "co_ban": "Có giáo án nhưng tích hợp AI mờ nhạt (<2 hoạt động)",
+            "chua_dat": "Giáo án sơ sài, không tích hợp AI"
+          }
+        },
+        {
+          "id": "C2",
+          "max": 10,
+          "name": "Học liệu số: chính xác, hấp dẫn, phù hợp chuẩn đầu ra buổi học",
+          "guide": "Slide ≥15 trang: nội dung chính xác, cấu trúc rõ, trực quan; ≥01 học liệu bổ trợ chất lượng (infographic/video/bài đọc/sơ đồ tư duy); thể hiện vai trò của AI trong xây dựng học liệu; phù hợp chuẩn đầu ra buổi học. Mức cao (8.5–10): học liệu phong phú, chuyên nghiệp. Mức khá (6.5–8): đạt yêu cầu, trình bày khá. Mức trung bình (4–6): slide dưới chuẩn hoặc học liệu bổ trợ sơ sài. Mức thấp (0–3.5): thiếu thành phần bắt buộc.",
+          "levels": {
+            "xuat_sac": "Slide đạt yêu cầu + học liệu bổ trợ chất lượng, chính xác, hấp dẫn",
+            "dat": "Đủ học liệu nhưng chất lượng/độ hấp dẫn trung bình",
+            "co_ban": "Thiếu học liệu bổ trợ hoặc slide chưa đạt số trang",
+            "chua_dat": "Học liệu sơ sài/không nộp"
+          }
+        },
+        {
+          "id": "C3",
+          "max": 10,
+          "name": "Trợ lý AI/bộ prompt: hữu ích cho tự học, có hướng dẫn rõ ràng, đã thử nghiệm",
+          "guide": "Chatbot tùy biến (custom GPT/Gem/Project) có liên kết truy cập được HOẶC bộ ≥10 prompt hướng dẫn tự học; kèm hướng dẫn sử dụng cho sinh viên; có minh chứng thử nghiệm (ảnh chụp hội thoại 'sinh viên'–trợ lý). Mức cao (8.5–10): trợ lý bám sát học phần, hướng dẫn rõ, đã thử nghiệm thuyết phục. Mức khá (6.5–8): đạt yêu cầu nhưng nội dung tùy biến còn mỏng. Mức trung bình (4–6): bộ prompt/chatbot chung chung, ít gắn học phần. Mức thấp (0–3.5): thiếu hướng dẫn hoặc không truy cập/thử nghiệm được.",
+          "levels": {
+            "xuat_sac": "Chatbot tùy biến hoặc bộ prompt đầy đủ, có hướng dẫn & minh chứng thử nghiệm",
+            "dat": "Có bộ prompt/chatbot và hướng dẫn nhưng chưa thử nghiệm/minh chứng",
+            "co_ban": "Bộ prompt sơ sài (<10) hoặc thiếu hướng dẫn",
+            "chua_dat": "Không thực hiện"
+          }
+        },
+        {
+          "id": "C4",
+          "max": 10,
+          "name": "Phương án phân hóa: thể hiện đúng vai trò của AI trong cá nhân hóa học tập",
+          "guide": "Bản thiết kế 2–3 trang cho 02 nhóm sinh viên trình độ khác nhau: mô tả đặc điểm 2 nhóm; nêu rõ AI giúp điều chỉnh nội dung, nhịp độ và phản hồi như thế nào cho từng nhóm; khả thi trong điều kiện DNU. Mức cao (8.5–10): phương án cụ thể, vai trò AI rõ trong cả 3 khía cạnh (nội dung, nhịp độ, phản hồi). Mức khá (6.5–8): rõ 2/3 khía cạnh. Mức trung bình (4–6): phân hóa chung chung, AI mờ nhạt. Mức thấp (0–3.5): không thể hiện phân hóa.",
+          "levels": {
+            "xuat_sac": "Phân hóa rõ 2 nhóm, vai trò AI trong cá nhân hóa cụ thể, khả thi",
+            "dat": "Có phân hóa 2 nhóm, vai trò AI nêu được nhưng ngắn",
+            "co_ban": "Phân hóa mờ nhạt hoặc chỉ 1 nhóm",
+            "chua_dat": "Không thực hiện"
+          }
+        }
+      ]
+    },
+    "D": {
+      "name": "Đánh giá người học",
+      "weight": 10,
+      "max_score": 10,
+      "graded": true,
+      "description": "Dùng AI xây dựng ngân hàng câu hỏi cho 01 chương/chủ đề (≥30 câu trắc nghiệm phân theo mức độ nhận thức + 05 câu tự luận/bài tập tình huống); xây dựng rubric chấm cho 01 bài tập lớn/câu tự luận kèm 02 bài làm mẫu do AI mô phỏng và kết quả chấm thử; đề xuất ≥03 biện pháp kiểm soát sinh viên lạm dụng AI.",
+      "products": [
+        "Ngân hàng câu hỏi: ≥30 câu trắc nghiệm phân mức độ nhận thức + 05 câu tự luận/bài tập tình huống",
+        "Rubric chấm + 02 bài làm mẫu (AI mô phỏng) + kết quả chấm thử theo rubric",
+        "Bản đề xuất biện pháp kiểm soát lạm dụng AI (1–2 trang, ≥03 biện pháp)"
+      ],
+      "evidences": [
+        "Nhật ký prompt/liên kết hội thoại; ghi chú rõ các câu hỏi đã được giảng viên hiệu chỉnh so với bản AI tạo ra"
+      ],
+      "criteria": [
+        {
+          "id": "D1",
+          "max": 5,
+          "name": "Chất lượng ngân hàng câu hỏi: đúng chuẩn đầu ra, phân mức độ hợp lý, đã hiệu chỉnh",
+          "guide": "≥30 câu trắc nghiệm phân theo mức độ nhận thức (nhớ/hiểu/vận dụng...) + 05 câu tự luận/tình huống; bám chuẩn đầu ra chương/chủ đề; có ghi chú phần giảng viên hiệu chỉnh so với bản AI. Mức cao (4.5–5): đủ số lượng, phân mức hợp lý, hiệu chỉnh rõ. Mức khá (3.5–4): đủ nhưng phân mức chưa đều. Mức trung bình (2–3): thiếu số lượng hoặc không phân mức. Mức thấp (0–1.5): sơ sài.",
+          "levels": {
+            "xuat_sac": "Đủ số lượng, phân mức nhận thức hợp lý, đã hiệu chỉnh & kiểm chứng đáp án",
+            "dat": "Đủ số lượng, phân mức cơ bản, có hiệu chỉnh",
+            "co_ban": "Thiếu số lượng hoặc không phân mức/không hiệu chỉnh",
+            "chua_dat": "Sơ sài / không nộp"
+          }
+        },
+        {
+          "id": "D2",
+          "max": 3,
+          "name": "Rubric và kết quả chấm thử: tiêu chí rõ, nhất quán, sử dụng được ngay",
+          "guide": "Rubric có tiêu chí + mô tả mức điểm rõ ràng; 02 bài làm mẫu do AI mô phỏng; kết quả chấm thử nhất quán với rubric. Mức cao (2.5–3): rubric dùng được ngay, chấm thử thuyết phục. Mức khá (2): đủ thành phần, còn điểm chưa nhất quán. Mức trung bình (1–1.5): rubric chung chung. Mức thấp (0–0.5): thiếu thành phần.",
+          "levels": {
+            "xuat_sac": "Rubric rõ, 2 bài mẫu + chấm thử nhất quán, dùng ngay được",
+            "dat": "Rubric dùng được nhưng thiếu 1 bài mẫu hoặc chấm thử",
+            "co_ban": "Rubric sơ sài hoặc không có bài mẫu",
+            "chua_dat": "Không có rubric"
+          }
+        },
+        {
+          "id": "D3",
+          "max": 2,
+          "name": "Biện pháp kiểm soát lạm dụng AI: cụ thể, khả thi",
+          "guide": "≥03 biện pháp kiểm soát việc sinh viên lạm dụng AI trong kiểm tra/bài tập của học phần; cụ thể, khả thi, phù hợp đặc thù học phần. Mức cao (2): biện pháp cụ thể, có cách triển khai. Mức khá (1.5): đủ 3 biện pháp nhưng chung. Mức trung bình (1): biện pháp sao chép phổ biến, không gắn học phần. Mức thấp (0–0.5): thiếu.",
+          "levels": {
+            "xuat_sac": "≥3 biện pháp cụ thể, khả thi",
+            "dat": "2 biện pháp hợp lý",
+            "co_ban": "1 biện pháp chung chung",
+            "chua_dat": "Không có"
+          }
+        }
+      ]
+    },
+    "E": {
+      "name": "Nghiên cứu khoa học",
+      "weight": 20,
+      "max_score": 20,
+      "graded": true,
+      "description": "Dùng AI thực hiện tổng quan tài liệu cho 01 hướng nghiên cứu (≥15 tài liệu, ưu tiên 5 năm gần nhất, có bảng tổng hợp, xác định khoảng trống nghiên cứu, kiểm chứng mọi trích dẫn AI cung cấp); dùng AI hỗ trợ xây dựng 01 đề cương nghiên cứu (câu hỏi, phương pháp, dữ liệu, kế hoạch). Nhiệm vụ khuyến khích (+2 điểm thưởng, không vượt trần 20): dùng AI xử lý/phân tích tập dữ liệu mẫu hoặc cải thiện bản thảo bài báo.",
+      "products": [
+        "Báo cáo tổng quan tài liệu (4–6 trang) kèm bảng tổng hợp ≥15 tài liệu",
+        "Đề cương nghiên cứu (3–5 trang)",
+        "(Khuyến khích) Sản phẩm phân tích dữ liệu mẫu hoặc bản thảo bài báo đã cải thiện"
+      ],
+      "evidences": [
+        "Nhật ký prompt/liên kết hội thoại",
+        "Danh sách tài liệu kèm ghi chú kết quả kiểm chứng (DOI/nguồn gốc thực của từng tài liệu)"
+      ],
+      "criteria": [
+        {
+          "id": "E1",
+          "max": 10,
+          "name": "Tổng quan tài liệu: bao quát, có kiểm chứng nguồn, xác định được khoảng trống",
+          "guide": "≥15 tài liệu (ưu tiên 5 năm gần nhất), bảng tổng hợp có cấu trúc; mọi trích dẫn được kiểm chứng (DOI/nguồn thực); tổng hợp có phân tích, xác định khoảng trống nghiên cứu rõ. Mức cao (8.5–10): bao quát, kiểm chứng đầy đủ, khoảng trống thuyết phục. Mức khá (6.5–8): đủ tài liệu, kiểm chứng một phần. Mức trung bình (4–6): liệt kê là chính, kiểm chứng sơ sài. Mức thấp (0–3.5): dưới 15 tài liệu hoặc có dấu hiệu trích dẫn ảo không kiểm chứng.",
+          "levels": {
+            "xuat_sac": "≥15 tài liệu, mọi trích dẫn được kiểm chứng, xác định khoảng trống rõ",
+            "dat": "Đủ tài liệu, phần lớn kiểm chứng, có nêu khoảng trống",
+            "co_ban": "Thiếu tài liệu hoặc chưa kiểm chứng nguồn (nguy cơ AI bịa)",
+            "chua_dat": "Sơ sài / không nộp"
+          }
+        },
+        {
+          "id": "E2",
+          "max": 8,
+          "name": "Đề cương nghiên cứu: câu hỏi rõ, phương pháp phù hợp, khả thi",
+          "guide": "Đề cương 3–5 trang (đề tài cấp cơ sở/bài báo/hợp tác doanh nghiệp): câu hỏi nghiên cứu rõ, xuất phát từ khoảng trống; phương pháp và dữ liệu dự kiến phù hợp; kế hoạch thực hiện khả thi. Mức cao (7–8): logic chặt từ tổng quan đến câu hỏi và phương pháp. Mức khá (5–6.5): đủ thành phần, liên kết chưa chặt. Mức trung bình (3–4.5): câu hỏi mơ hồ hoặc phương pháp không khớp. Mức thấp (0–2.5): sơ sài.",
+          "levels": {
+            "xuat_sac": "Câu hỏi rõ, phương pháp & kế hoạch chi tiết, khả thi cao",
+            "dat": "Đề cương đủ phần, một vài mục còn ngắn",
+            "co_ban": "Đề cương thiếu câu hỏi hoặc phương pháp",
+            "chua_dat": "Không có đề cương"
+          }
+        },
+        {
+          "id": "E3",
+          "max": 2,
+          "name": "Mức độ khai thác AI có phản biện (phát hiện và xử lý nội dung AI tạo sai)",
+          "guide": "Nhật ký thể hiện việc phát hiện và xử lý nội dung AI tạo sai (trích dẫn ảo, dữ kiện sai), đối chiếu nhiều nguồn. Mức cao (2): có ví dụ cụ thể phát hiện lỗi AI và cách xử lý. Mức khá (1.5): có kiểm chứng nhưng không nêu ví dụ. Mức trung bình (1): kiểm chứng hình thức. Mức thấp (0–0.5): không thể hiện.",
+          "levels": {
+            "xuat_sac": "Chủ động phát hiện và xử lý lỗi/nguồn bịa của AI",
+            "dat": "Có kiểm chứng cơ bản",
+            "co_ban": "Ít kiểm chứng",
+            "chua_dat": "Không kiểm chứng"
+          }
+        },
+        {
+          "id": "E_BONUS",
+          "max": 2,
+          "name": "Nhiệm vụ khuyến khích: phân tích dữ liệu mẫu hoặc cải thiện bản thảo bài báo bằng AI",
+          "guide": "Điểm thưởng (0–2): có sản phẩm của nhiệm vụ khuyến khích với minh chứng quá trình dùng AI. Chỉ cho điểm khi có sản phẩm thực; tổng Phần E không vượt 20.",
+          "bonus": true,
+          "levels": {
+            "xuat_sac": "Có sản phẩm nhiệm vụ khuyến khích (phân tích dữ liệu/cải thiện bản thảo) với minh chứng AI rõ ràng",
+            "dat": "Có sản phẩm khuyến khích, minh chứng cơ bản",
+            "co_ban": "Có ý định/khởi đầu nhưng sản phẩm sơ sài",
+            "chua_dat": "Không thực hiện nhiệm vụ khuyến khích (0 điểm thưởng)"
+          }
+        }
+      ]
+    },
+    "F": {
+      "name": "Phục vụ cộng đồng, doanh nghiệp, học tập, bồi dưỡng và chia sẻ tri thức",
+      "weight": 5,
+      "max_score": 5,
+      "graded": true,
+      "description": "Chọn 01 trong 3 nhiệm vụ: (1) Dùng AI xây dựng 01 sản phẩm truyền thông/tư vấn phục vụ cộng đồng hoặc doanh nghiệp gắn với chuyên môn; (2) Hoàn thành 01 khóa học/chứng nhận về AI (01/2026 đến nay) + bản thu hoạch áp dụng vào công việc; (3) Tổ chức/thực hiện 01 buổi chia sẻ nội bộ về ứng dụng AI tại bộ môn/khoa.",
+      "products": [
+        "Sản phẩm tương ứng nhiệm vụ đã chọn: sản phẩm truyền thông; HOẶC chứng nhận + bản thu hoạch 1–2 trang; HOẶC tài liệu chia sẻ + hình ảnh/biên bản buổi chia sẻ"
+      ],
+      "evidences": [
+        "Nhật ký prompt/liên kết hội thoại (nhiệm vụ 1 và 3); bản sao chứng nhận (nhiệm vụ 2)"
+      ],
+      "criteria": [
+        {
+          "id": "F1",
+          "max": 3,
+          "name": "Giá trị thực tiễn của sản phẩm/hoạt động đối với cộng đồng, doanh nghiệp hoặc đồng nghiệp",
+          "guide": "Sản phẩm/hoạt động có đối tượng thụ hưởng rõ, nội dung hữu ích, gắn chuyên môn. Mức cao (2.5–3): giá trị rõ, dùng được ngay. Mức khá (2): hữu ích nhưng phạm vi hẹp. Mức trung bình (1–1.5): hình thức. Mức thấp (0–0.5): không rõ giá trị.",
+          "levels": {
+            "xuat_sac": "Sản phẩm/hoạt động có giá trị thực tiễn rõ, đã triển khai",
+            "dat": "Có giá trị nhưng phạm vi hạn chế",
+            "co_ban": "Giá trị mờ nhạt",
+            "chua_dat": "Không thực hiện/không minh chứng"
+          }
+        },
+        {
+          "id": "F2",
+          "max": 2,
+          "name": "Mức độ ứng dụng AI và minh chứng kèm theo",
+          "guide": "Thể hiện rõ vai trò AI trong tạo sản phẩm/hoạt động; minh chứng phù hợp nhiệm vụ đã chọn (nhật ký prompt, chứng nhận, biên bản/hình ảnh). Mức cao (2): AI dùng thực chất, minh chứng đủ. Mức khá (1.5): có dùng AI, minh chứng cơ bản. Mức trung bình (1): AI mờ nhạt. Mức thấp (0–0.5): thiếu minh chứng.",
+          "is_evidence_criterion": true,
+          "levels": {
+            "xuat_sac": "Ứng dụng AI rõ, minh chứng đầy đủ",
+            "dat": "Có ứng dụng AI, minh chứng cơ bản",
+            "co_ban": "Ứng dụng AI mờ nhạt",
+            "chua_dat": "Không có minh chứng"
+          }
+        }
+      ]
+    },
+    "G": {
+      "name": "Chia sẻ bài học kinh nghiệm và minh chứng sử dụng AI",
+      "weight": 5,
+      "max_score": 5,
+      "graded": true,
+      "description": "Viết báo cáo bài học kinh nghiệm (2–3 trang): công cụ AI đã dùng trong toàn bộ đề bài; việc AI làm tốt/chưa tốt; kỹ thuật prompt hiệu quả nhất; cam kết và đề xuất sử dụng AI có trách nhiệm tại DNU. Lập danh mục tổng hợp toàn bộ minh chứng các Phần B–F theo mẫu; hệ thống đối chiếu tự động với minh chứng đã nộp.",
+      "products": [
+        "Báo cáo bài học kinh nghiệm (2–3 trang)",
+        "Danh mục minh chứng tổng hợp các Phần B–F (theo mẫu của hệ thống)"
+      ],
+      "evidences": [
+        "Chính danh mục minh chứng là sản phẩm của phần này; hệ thống đối chiếu tự động với minh chứng đã nộp ở các phần trước"
+      ],
+      "criteria": [
+        {
+          "id": "G1",
+          "max": 3,
+          "name": "Báo cáo kinh nghiệm: phản tư sâu sắc, bài học cụ thể, có thể chia sẻ lại cho đồng nghiệp",
+          "guide": "Báo cáo 2–3 trang: nêu công cụ đã dùng; phân tích việc AI làm tốt/chưa tốt với ví dụ thực từ quá trình làm đề bài; kỹ thuật prompt hiệu quả nhất; cam kết/đề xuất sử dụng AI có trách nhiệm. Mức cao (2.5–3): phản tư sâu, bài học cụ thể tái sử dụng được. Mức khá (2): có bài học nhưng chung. Mức trung bình (1–1.5): kể việc, ít phản tư. Mức thấp (0–0.5): sơ sài.",
+          "levels": {
+            "xuat_sac": "Phản tư sâu, nêu rõ điểm mạnh/yếu của AI, bài học cụ thể & cam kết",
+            "dat": "Báo cáo đủ ý, phản tư ở mức khá",
+            "co_ban": "Báo cáo chung chung",
+            "chua_dat": "Sơ sài/không nộp"
+          }
+        },
+        {
+          "id": "G2",
+          "max": 2,
+          "name": "Danh mục minh chứng: đầy đủ, khớp với sản phẩm, trung thực",
+          "guide": "Danh mục liệt kê đủ minh chứng các Phần B–F, khớp với minh chứng thực nộp trên hệ thống (kết quả đối chiếu tự động được cung cấp kèm). Mức cao (2): khớp hoàn toàn. Mức khá (1.5): lệch nhỏ. Mức trung bình (1): thiếu vài phần. Mức thấp (0–0.5): lệch nhiều hoặc kê khai không trung thực.",
+          "is_evidence_criterion": true,
+          "levels": {
+            "xuat_sac": "Danh mục đầy đủ, khớp toàn bộ sản phẩm, trung thực",
+            "dat": "Khá đầy đủ, vài mục thiếu",
+            "co_ban": "Rời rạc",
+            "chua_dat": "Không có"
+          }
+        }
+      ]
+    }
+  },
+  "classification": [
+    {
+      "key": "dan_dat",
+      "label": "Dẫn dắt (nòng cốt)",
+      "min": 85,
+      "note": "Đưa vào đội ngũ giảng viên nòng cốt về AI; tham gia xây dựng kế hoạch phát triển năng lực AI và bồi dưỡng đồng nghiệp năm học 2026–2027."
+    },
+    {
+      "key": "thanh_thao",
+      "label": "Thành thạo",
+      "min": 70,
+      "note": "Khuyến khích mở rộng ứng dụng AI sang các học phần khác; bồi dưỡng nâng cao theo chuyên đề."
+    },
+    {
+      "key": "co_ban",
+      "label": "Cơ bản",
+      "min": 50,
+      "note": "Tham gia chương trình bồi dưỡng trọng tâm năm học 2026–2027 theo nhóm kỹ năng còn thiếu."
+    },
+    {
+      "key": "khoi_dau",
+      "label": "Khởi đầu",
+      "min": 0,
+      "note": "Tham gia chương trình đào tạo nền tảng về AI; được giảng viên nòng cốt hỗ trợ trực tiếp."
+    }
+  ],
+  "level_bands": [
+    {
+      "key": "xuat_sac",
+      "label": "Xuất sắc",
+      "pct_min": 90,
+      "pct_max": 100
+    },
+    {
+      "key": "dat",
+      "label": "Đạt yêu cầu",
+      "pct_min": 70,
+      "pct_max": 89
+    },
+    {
+      "key": "co_ban",
+      "label": "Cơ bản",
+      "pct_min": 50,
+      "pct_max": 69
+    },
+    {
+      "key": "chua_dat",
+      "label": "Chưa đạt",
+      "pct_min": 0,
+      "pct_max": 49
+    }
+  ]
+}

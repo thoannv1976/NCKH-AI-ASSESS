@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Kết quả đánh giá{% endblock %}
+{% block content %}
+{% if not published %}
+<div class="bg-white rounded-xl shadow p-8 max-w-xl mx-auto text-center">
+  <h1 class="text-lg font-bold">Kết quả chưa được công bố</h1>
+  <p class="text-sm text-slate-500 mt-2">
+    Hồ sơ của thầy/cô đang ở trạng thái <b>{{ sub.status }}</b>.
+    Kết quả sẽ hiển thị tại đây sau khi Hội đồng phê duyệt và Ban tổ chức công bố (dự kiến sau 10/7/2026).
+  </p>
+</div>
+{% else %}
+<div class="flex items-center gap-4 mb-5">
+  <h1 class="text-xl font-bold">Kết quả đánh giá năng lực ứng dụng AI 2026</h1>
+  <a href="/reports/profile/{{ sub.id }}" class="ml-auto text-sm bg-slate-700 text-white rounded-lg px-4 py-2 no-print">
+    📄 Hồ sơ năng lực (in/PDF)</a>
+</div>
+
+<div class="grid sm:grid-cols-3 gap-4 mb-6">
+  <div class="bg-white rounded-xl shadow p-5 text-center">
+    <p class="text-xs text-slate-400 uppercase">Tổng điểm</p>
+    <p class="text-4xl font-extrabold text-orange-700 mt-1">{{ '%g' % review.total_final }}<span class="text-base text-slate-400">/100</span></p>
+  </div>
+  <div class="bg-white rounded-xl shadow p-5 text-center">
+    <p class="text-xs text-slate-400 uppercase">Mức năng lực</p>
+    <p class="text-2xl font-bold mt-2">{{ review.classification_label }}</p>
+  </div>
+  <div class="bg-white rounded-xl shadow p-5 text-center">
+    <p class="text-xs text-slate-400 uppercase">Phản hồi kết quả</p>
+    {% if appeal %}
+      <p class="text-sm mt-2">Đã gửi — trạng thái: <b>{{ {'open':'Đang xem xét','resolved':'Đã trả lời'}[appeal.status] }}</b></p>
+    {% elif appeal_open %}
+      <p class="text-sm mt-2 text-emerald-600">Còn trong hạn 03 ngày làm việc</p>
+    {% else %}
+      <p class="text-sm mt-2 text-slate-400">Đã hết hạn phản hồi</p>
+    {% endif %}
+  </div>
+</div>
+
+{% for part, rows in scores.items() %}
+<div class="bg-white rounded-xl shadow mb-4 overflow-hidden">
+  <div class="px-5 py-3 bg-slate-50 flex items-center">
+    <h2 class="font-semibold">Phần {{ part }} — {{ rubric.parts[part].name }}</h2>
+    <span class="ml-auto font-bold text-orange-700">{{ '%g' % review.part_totals[part] }}/{{ rubric.parts[part].max_score }}</span>
+  </div>
+  <table class="w-full text-sm">
+    <thead><tr class="text-left text-xs text-slate-400 border-b">
+      <th class="px-5 py-2">Tiêu chí</th><th class="px-2 py-2 w-24 text-center">Điểm</th><th class="px-5 py-2">Nhận xét</th>
+    </tr></thead>
+    <tbody>
+      {% for s in rows %}
+      <tr class="border-b last:border-0 align-top">
+        <td class="px-5 py-2 font-medium">{{ s.criterion_id }}</td>
+        <td class="px-2 py-2 text-center font-bold">{{ '%g' % s.final_score }}<span class="text-slate-400 font-normal">/{{ s.max }}</span></td>
+        <td class="px-5 py-2 text-slate-600">
+          {{ s.ai_comment }}
+          {% if s.council_comment %}<div class="mt-1 text-xs text-blue-700">Hội đồng: {{ s.council_comment }}</div>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endfor %}
+
+{% if appeal_open and not appeal %}
+<div class="bg-white rounded-xl shadow p-5 no-print">
+  <h2 class="font-semibold">Gửi phản hồi về kết quả</h2>
+  <p class="text-xs text-slate-500 mt-1">Trong 03 ngày làm việc kể từ ngày công bố. Hội đồng sẽ xem xét và trả lời trên hệ thống.</p>
+  <form method="post" action="/lecturer/appeal" class="mt-3">
+    <textarea name="content" rows="4" required placeholder="Nội dung phản hồi, nêu rõ tiêu chí và lý do..."
+              class="w-full border rounded-lg px-3 py-2 text-sm"></textarea>
+    <button class="mt-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg px-5 py-2 text-sm font-semibold">Gửi phản hồi</button>
+  </form>
+</div>
+{% endif %}
+{% if appeal and appeal.resolution %}
+<div class="bg-blue-50 rounded-xl p-5 text-sm">
+  <b>Trả lời của Hội đồng:</b> {{ appeal.resolution }}
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}

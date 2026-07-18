@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Quản lý người dùng{% endblock %}
+{% block content %}
+<div x-data="{ panel: '' }">
+  <div class="flex flex-wrap items-center gap-3 mb-4">
+    <h1 class="text-xl font-bold">Người dùng ({{ total }})</h1>
+    <form method="get" class="flex gap-2 text-sm">
+      <input name="q" value="{{ q }}" placeholder="Tìm tên / email / mã / đơn vị / chức vụ"
+             class="border rounded-lg px-3 py-1.5 w-72">
+      <button class="bg-slate-700 text-white rounded-lg px-4">Tìm</button>
+      {% if q %}<a href="/admin/users" class="self-center text-slate-500 hover:underline">Xóa lọc</a>{% endif %}
+    </form>
+    <div class="ml-auto flex gap-2">
+      <button type="button" @click="panel = panel === 'add' ? '' : 'add'"
+              class="bg-orange-600 hover:bg-orange-700 text-white rounded-lg px-4 py-2 text-sm font-semibold">+ Thêm người dùng</button>
+      <button type="button" @click="panel = panel === 'import' ? '' : 'import'"
+              class="bg-slate-700 hover:bg-slate-800 text-white rounded-lg px-4 py-2 text-sm font-semibold">⬆ Import CSV</button>
+    </div>
+  </div>
+
+  {% if request.query_params.get('added') is not none %}
+  <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-3 mb-4 text-sm">Đã thêm {{ request.query_params.get('added') }}, cập nhật {{ request.query_params.get('updated') }} người dùng.</div>
+  {% endif %}
+  {% if request.query_params.get('pwset') %}
+  <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-3 mb-4 text-sm">Đã đặt lại mật khẩu.</div>
+  {% endif %}
+
+  <!-- Bảng thêm người dùng (ẩn/hiện) -->
+  <div x-show="panel === 'add'" x-cloak class="bg-white rounded-xl shadow p-5 mb-4">
+    <h2 class="font-semibold text-sm mb-3">Thêm người dùng</h2>
+    <form method="post" action="/admin/users/add" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-2 text-sm">
+      <input name="ho_ten" required placeholder="Họ tên" class="border rounded-lg px-3 py-1.5">
+      <input name="email" type="email" required placeholder="Email" class="border rounded-lg px-3 py-1.5">
+      <input name="ma_gv" placeholder="Mã định danh" class="border rounded-lg px-3 py-1.5">
+      <input name="khoa" placeholder="Đơn vị" class="border rounded-lg px-3 py-1.5">
+      <input name="bo_mon" placeholder="Bộ môn (tùy chọn)" class="border rounded-lg px-3 py-1.5">
+      <input name="chuc_vu" placeholder="Chức vụ (tùy chọn)" class="border rounded-lg px-3 py-1.5">
+      <select name="role" class="border rounded-lg px-2 py-1.5">
+        <option value="lecturer">Giảng viên</option>
+        <option value="council">Hội đồng</option>
+        <option value="admin">Quản trị</option>
+      </select>
+      <input name="password" type="text" required minlength="6" placeholder="Mật khẩu (≥6 ký tự)" class="border rounded-lg px-3 py-1.5">
+      <button class="bg-orange-600 hover:bg-orange-700 text-white rounded-lg px-4 py-2 font-semibold">Thêm</button>
+    </form>
+  </div>
+
+  <!-- Import CSV (ẩn/hiện) -->
+  <div x-show="panel === 'import'" x-cloak class="bg-white rounded-xl shadow p-5 mb-4">
+    <h2 class="font-semibold text-sm">Import danh sách (CSV)</h2>
+    <p class="text-xs text-slate-400 mt-1">Cột: <code>ma_gv,ho_ten,email,don_vi,bo_mon,chuc_vu,role,password</code> ·
+      role mặc định lecturer · không có password → dùng mật khẩu mặc định <code>{{ settings.default_password }}</code> ·
+      email trùng sẽ được cập nhật · vẫn nhận cột cũ <code>khoa</code>.</p>
+    <form method="post" action="/admin/users/import" enctype="multipart/form-data" class="mt-3 grid md:grid-cols-2 gap-3">
+      <div>
+        <input type="file" name="file" accept=".csv" class="block w-full text-sm">
+        <button class="mt-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg px-4 py-2 text-sm font-semibold w-full">Import từ tệp</button>
+      </div>
+      <div>
+        <textarea name="csv_text" rows="4" class="w-full border rounded-lg px-2 py-1.5 text-xs font-mono"
+          placeholder="ma_gv,ho_ten,email,don_vi,bo_mon,chuc_vu,role,password&#10;88800610,Nguyễn Bá Lâm,nguyenbalam@dainam.edu.vn,Khoa CT-QP-TC,,Trưởng khoa,lecturer,"></textarea>
+        <button class="mt-1 bg-slate-700 hover:bg-slate-800 text-white rounded-lg px-4 py-2 text-sm font-semibold w-full">Import từ ô dán</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Bảng người dùng (toàn chiều rộng) -->
+  <div class="bg-white rounded-xl shadow overflow-x-auto" x-data="{pw: null}">
+    <table class="w-full text-sm">
+      <thead><tr class="text-left text-xs text-slate-400 border-b whitespace-nowrap">
+        <th class="px-4 py-2.5">Mã định danh</th><th class="px-3 py-2.5">Họ tên</th><th class="px-3 py-2.5">Email</th>
+        <th class="px-3 py-2.5">Đơn vị</th><th class="px-3 py-2.5">Chức vụ</th><th class="px-3 py-2.5">Vai trò</th>
+        <th class="px-4 py-2.5 text-right">Thao tác</th>
+      </tr></thead>
+      <tbody>
+        {% for u in users %}
+        <tr class="border-b last:border-0 hover:bg-orange-50/40 {{ 'opacity-50' if not u.get('active', True) }}">
+          <td class="px-4 py-2 whitespace-nowrap">{{ u.ma_gv }}</td>
+          <td class="px-3 py-2 font-medium whitespace-nowrap">{{ u.ho_ten }}</td>
+          <td class="px-3 py-2 text-slate-500 whitespace-nowrap">{{ u.email }}</td>
+          <td class="px-3 py-2 whitespace-nowrap">{{ u.khoa }}</td>
+          <td class="px-3 py-2 text-slate-600 whitespace-nowrap">{{ u.get('chuc_vu', '') }}</td>
+          <td class="px-3 py-2 whitespace-nowrap">{{ {'lecturer':'Giảng viên','council':'Hội đồng','admin':'Quản trị'}[u.role] }}</td>
+          <td class="px-4 py-2 text-right whitespace-nowrap">
+            <button class="text-orange-700 text-xs hover:underline" @click="pw = (pw === '{{ u.id }}' ? null : '{{ u.id }}')">Đặt mật khẩu</button>
+            <form method="post" action="/admin/users/{{ u.id }}/toggle" class="inline"
+                  onsubmit="return confirm('{{ 'Mở khóa' if not u.get('active', True) else 'Khóa' }} tài khoản này?')">
+              <button class="text-xs hover:underline {{ 'text-emerald-600' if not u.get('active', True) else 'text-red-500' }} ml-2">
+                {{ 'Mở khóa' if not u.get('active', True) else 'Khóa' }}</button>
+            </form>
+            <form method="post" action="/admin/users/{{ u.id }}/password" class="mt-1 flex gap-1 justify-end" x-show="pw === '{{ u.id }}'" x-cloak>
+              <input name="new_password" type="text" required minlength="6" placeholder="Mật khẩu mới"
+                     class="border rounded px-2 py-1 text-xs w-36">
+              <button class="bg-slate-700 text-white text-xs rounded px-2">Lưu</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="px-4 py-8 text-center text-slate-400">Không có người dùng nào khớp.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Phân trang -->
+  {% if pages > 1 %}
+  {% set base = '/admin/users?' ~ ('q=' ~ (q | urlencode) ~ '&' if q else '') %}
+  <nav class="flex flex-wrap items-center justify-center gap-1 mt-4 text-sm">
+    <a class="px-3 py-1.5 rounded border {{ 'pointer-events-none opacity-40' if page <= 1 else 'hover:bg-slate-50' }}"
+       href="{{ base }}page={{ page - 1 }}">‹ Trước</a>
+    {% for p in range(1, pages + 1) %}
+      {% if p == 1 or p == pages or (p >= page - 2 and p <= page + 2) %}
+        <a class="px-3 py-1.5 rounded border {{ 'bg-orange-600 text-white border-orange-600' if p == page else 'hover:bg-slate-50' }}"
+           href="{{ base }}page={{ p }}">{{ p }}</a>
+      {% elif p == page - 3 or p == page + 3 %}
+        <span class="px-1 text-slate-400">…</span>
+      {% endif %}
+    {% endfor %}
+    <a class="px-3 py-1.5 rounded border {{ 'pointer-events-none opacity-40' if page >= pages else 'hover:bg-slate-50' }}"
+       href="{{ base }}page={{ page + 1 }}">Sau ›</a>
+  </nav>
+  {% endif %}
+  <p class="text-center text-xs text-slate-400 mt-2">
+    Trang {{ page }}/{{ pages }} · hiển thị {{ users | length }} / {{ total }} người dùng{{ ' (đã lọc)' if q }} · {{ per_page }} dòng/trang
+  </p>
+</div>
+{% endblock %}

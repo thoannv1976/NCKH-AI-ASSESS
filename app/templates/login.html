@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Đăng nhập — {{ APP_TITLE }}{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto mt-10">
+  <div class="bg-white rounded-xl shadow p-8">
+    <h1 class="text-2xl font-bold text-center text-orange-700">{{ APP_TITLE }}</h1>
+    <p class="text-center text-slate-500 mt-2 text-sm">
+      Hệ thống đánh giá năng lực ứng dụng AI của giảng viên<br>{{ ORG_NAME }} — {{ PROGRAM_YEAR }}
+    </p>
+
+    {% if error %}
+    <div class="mt-5 bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">{{ error }}</div>
+    {% endif %}
+
+    <form method="post" action="/login" class="mt-6 space-y-4">
+      <div>
+        <label class="block text-sm font-medium">ID đăng nhập</label>
+        <input name="login_id" required autofocus placeholder="Email hoặc mã giảng viên (vd: gv001@dainam.edu.vn hoặc GV001)"
+               class="mt-1 w-full border rounded-lg px-3 py-2">
+      </div>
+      <div>
+        <label class="block text-sm font-medium">Mật khẩu</label>
+        <input name="password" type="password" required class="mt-1 w-full border rounded-lg px-3 py-2">
+      </div>
+      <button class="w-full bg-orange-600 hover:bg-orange-700 text-white rounded-lg py-2.5 font-semibold">
+        Đăng nhập
+      </button>
+    </form>
+
+    <p class="text-xs text-slate-400 mt-4 text-center">
+      Quên mật khẩu hoặc chưa có tài khoản? Liên hệ quản trị viên / Ban tổ chức.
+    </p>
+    {% if app_mode == 'local' %}
+    <p class="text-xs text-amber-600 mt-3 text-center">
+      Chế độ thử nghiệm: chạy <code>python scripts/seed_demo.py</code> để tạo tài khoản demo
+      (mật khẩu mặc định <code>demo123</code>).
+    </p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Tình trạng nộp bài{% endblock %}
+{% block content %}
+{% set tb = '/admin/tracking?' ~ ('khoa=' ~ (khoa | urlencode) ~ '&' if khoa else '') ~ ('state=' ~ state ~ '&' if state else '') %}
+<div class="flex flex-wrap items-center gap-3 mb-4">
+  <h1 class="text-xl font-bold">Tình trạng nộp bài</h1>
+  <form method="get" class="ml-auto flex gap-2 text-sm">
+    <select name="khoa" class="border rounded-lg px-2 py-1.5">
+      <option value="">— Tất cả đơn vị —</option>
+      {% for k in khoas %}<option value="{{ k }}" {{ 'selected' if k == khoa }}>{{ k }}</option>{% endfor %}
+    </select>
+    <select name="state" class="border rounded-lg px-2 py-1.5">
+      <option value="">— Mọi trạng thái —</option>
+      <option value="submitted" {{ 'selected' if state == 'submitted' }}>Đã nộp</option>
+      <option value="draft" {{ 'selected' if state == 'draft' }}>Bản nháp</option>
+      <option value="none" {{ 'selected' if state == 'none' }}>Chưa tạo hồ sơ</option>
+    </select>
+    <button class="bg-slate-700 text-white rounded-lg px-4">Lọc</button>
+  </form>
+  <a href="/admin/tracking.xlsx?{{ ('khoa=' ~ (khoa | urlencode) ~ '&') if khoa }}{{ ('state=' ~ state) if state }}"
+     class="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-4 py-2 text-sm font-semibold">⬇ Tải Excel</a>
+</div>
+
+<div class="grid sm:grid-cols-4 gap-4 mb-5">
+  {% for label, val, cls in [
+      ('Giảng viên', counts.lecturers, 'text-slate-700'),
+      ('Đã nộp', counts.submitted, 'text-emerald-700'),
+      ('Bản nháp', counts.draft, 'text-amber-600'),
+      ('Chưa tạo hồ sơ', counts.none, 'text-red-600')] %}
+  <div class="bg-white rounded-xl shadow p-4 text-center">
+    <p class="text-3xl font-extrabold {{ cls }}">{{ val }}</p>
+    <p class="text-xs text-slate-400 uppercase mt-1">{{ label }}</p>
+  </div>
+  {% endfor %}
+</div>
+
+{% if counts.ready_unsubmitted %}
+<div class="bg-amber-50 border border-amber-300 text-amber-800 rounded-lg p-3 mb-4 text-sm">
+  ⚠ Có <b>{{ counts.ready_unsubmitted }}</b> giảng viên đã nộp đủ bài nhưng <b>chưa bấm Nộp</b> — nên nhắc để hồ sơ được ghi nhận và chấm.
+</div>
+{% endif %}
+
+<div class="bg-white rounded-xl shadow overflow-x-auto">
+  <table class="w-full text-sm">
+    <thead><tr class="text-left text-xs text-slate-400 border-b whitespace-nowrap">
+      <th class="px-3 py-2.5">Mã GV</th><th class="px-2 py-2.5">Họ tên</th><th class="px-2 py-2.5">Email</th>
+      <th class="px-2 py-2.5">Đơn vị</th><th class="px-2 py-2.5">Trạng thái</th>
+      <th class="px-2 py-2.5">Ghi chú / Còn thiếu</th><th class="px-2 py-2.5">Cập nhật gần nhất</th>
+    </tr></thead>
+    <tbody>
+      {% for r in rows %}
+      <tr class="border-b last:border-0 hover:bg-orange-50/40">
+        <td class="px-3 py-2 whitespace-nowrap">{{ r.user.ma_gv }}</td>
+        <td class="px-2 py-2 font-medium whitespace-nowrap">{{ r.user.ho_ten }}</td>
+        <td class="px-2 py-2 text-slate-500 whitespace-nowrap">{{ r.user.email }}</td>
+        <td class="px-2 py-2 whitespace-nowrap">{{ r.user.khoa }}</td>
+        <td class="px-2 py-2 whitespace-nowrap">
+          {% if r.state == 'submitted' %}<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs">Đã nộp</span>
+          {% elif r.state == 'draft' and r.ready %}<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs">Nháp · đủ bài</span>
+          {% elif r.state == 'draft' %}<span class="px-2 py-0.5 rounded-full bg-slate-200 text-slate-600 text-xs">Nháp · thiếu</span>
+          {% else %}<span class="px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs">Chưa tạo</span>{% endif %}
+        </td>
+        <td class="px-2 py-2 text-xs text-slate-600">
+          {% if r.state == 'draft' and r.ready %}<span class="text-amber-700 font-semibold">Đủ bài — chưa bấm Nộp</span>
+          {% elif r.missing %}{{ r.missing | join(', ') }}{% else %}—{% endif %}
+        </td>
+        <td class="px-2 py-2 text-slate-500 whitespace-nowrap">{{ (r.last or '')[:16] | replace('T', ' ') }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="px-4 py-8 text-center text-slate-400">Không có giảng viên nào khớp.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if pages > 1 %}
+<nav class="flex flex-wrap items-center justify-center gap-1 mt-4 text-sm">
+  <a class="px-3 py-1.5 rounded border {{ 'pointer-events-none opacity-40' if page <= 1 else 'hover:bg-slate-50' }}"
+     href="{{ tb }}page={{ page - 1 }}">‹ Trước</a>
+  {% for p in range(1, pages + 1) %}
+    {% if p == 1 or p == pages or (p >= page - 2 and p <= page + 2) %}
+      <a class="px-3 py-1.5 rounded border {{ 'bg-orange-600 text-white border-orange-600' if p == page else 'hover:bg-slate-50' }}"
+         href="{{ tb }}page={{ p }}">{{ p }}</a>
+    {% elif p == page - 3 or p == page + 3 %}<span class="px-1 text-slate-400">…</span>{% endif %}
+  {% endfor %}
+  <a class="px-3 py-1.5 rounded border {{ 'pointer-events-none opacity-40' if page >= pages else 'hover:bg-slate-50' }}"
+     href="{{ tb }}page={{ page + 1 }}">Sau ›</a>
+</nav>
+{% endif %}
+<p class="text-center text-xs text-slate-400 mt-2">
+  Trang {{ page }}/{{ pages }} · hiển thị {{ rows | length }} / {{ total }} giảng viên · {{ per_page }} dòng/trang
+</p>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Audit log{% endblock %}
+{% block content %}
+<h1 class="text-xl font-bold mb-4">Nhật ký thao tác (300 gần nhất)</h1>
+<div class="bg-white rounded-xl shadow overflow-x-auto">
+  <table class="w-full text-sm">
+    <thead><tr class="text-left text-xs text-slate-400 border-b">
+      <th class="px-4 py-2">Thời điểm</th><th class="px-2 py-2">Người thao tác</th>
+      <th class="px-2 py-2">Hành động</th><th class="px-2 py-2">Đối tượng</th><th class="px-2 py-2">Chi tiết</th>
+    </tr></thead>
+    <tbody>
+      {% for l in logs %}
+      <tr class="border-b last:border-0 align-top">
+        <td class="px-4 py-1.5 whitespace-nowrap text-xs">{{ l.ts[:19] | replace('T', ' ') }}</td>
+        <td class="px-2 py-1.5">{{ l.actor }} <span class="text-xs text-slate-400">({{ l.role }})</span></td>
+        <td class="px-2 py-1.5 font-mono text-xs">{{ l.action }}</td>
+        <td class="px-2 py-1.5 font-mono text-xs">{{ l.target }}</td>
+        <td class="px-2 py-1.5 text-xs text-slate-500">
+          {{ l.note }}
+          {% if l.before is not none %}<div>trước: {{ l.before }}</div>{% endif %}
+          {% if l.after is not none %}<div>sau: {{ l.after }}</div>{% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="px-4 py-6 text-center text-slate-400">Chưa có bản ghi.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

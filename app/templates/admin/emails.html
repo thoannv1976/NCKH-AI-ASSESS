@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Nhật ký email{% endblock %}
+{% block content %}
+<h1 class="text-xl font-bold mb-4">Nhật ký email (200 gần nhất)</h1>
+<div class="space-y-3">
+  {% for e in emails %}
+  <div class="bg-white rounded-xl shadow p-4 text-sm" x-data="{open: false}">
+    <div class="flex flex-wrap gap-3 items-center cursor-pointer" @click="open = !open">
+      <span class="text-xs px-2 py-0.5 rounded-full
+        {{ 'bg-emerald-100 text-emerald-700' if e.status == 'sent' else ('bg-slate-100 text-slate-600' if e.status == 'logged' else 'bg-red-100 text-red-600') }}">
+        {{ {'sent':'Đã gửi','logged':'Ghi log (dev)','error':'Lỗi'}[e.status] }}</span>
+      <b>{{ e.subject }}</b>
+      <span class="text-slate-400">→ {{ e.to }}</span>
+      <span class="ml-auto text-xs text-slate-400">{{ e.ts[:16] | replace('T', ' ') }}</span>
+    </div>
+    <pre class="mt-2 text-xs text-slate-600 whitespace-pre-wrap" x-show="open" x-cloak>{{ e.body }}</pre>
+    {% if e.error %}<p class="text-xs text-red-500 mt-1">{{ e.error }}</p>{% endif %}
+  </div>
+  {% else %}
+  <p class="text-slate-400">Chưa có email nào.</p>
+  {% endfor %}
+</div>
+{% endblock %}

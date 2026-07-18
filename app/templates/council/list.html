@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Thẩm định hồ sơ — Hội đồng{% endblock %}
+{% block content %}
+{% set status_labels = {'submitted':'Đã nộp','locked':'Đã khóa','grading':'Đang chấm','graded':'Chờ thẩm định','approved':'Đã phê duyệt','published':'Đã công bố'} %}
+<div class="flex flex-wrap items-center gap-3 mb-4">
+  <h1 class="text-xl font-bold">Thẩm định hồ sơ</h1>
+  <span class="text-sm text-slate-500">{{ total }} hồ sơ</span>
+  <form method="get" class="ml-auto flex gap-2 text-sm">
+    <select name="khoa" class="border rounded-lg px-2 py-1.5">
+      <option value="">— Tất cả đơn vị —</option>
+      {% for k in khoas %}<option value="{{ k }}" {{ 'selected' if k == khoa }}>{{ k }}</option>{% endfor %}
+    </select>
+    <select name="status" class="border rounded-lg px-2 py-1.5">
+      <option value="">— Mọi trạng thái —</option>
+      {% for s, l in status_labels.items() %}<option value="{{ s }}" {{ 'selected' if s == status }}>{{ l }}</option>{% endfor %}
+    </select>
+    <button class="bg-slate-700 text-white rounded-lg px-4">Lọc</button>
+  </form>
+</div>
+
+<div class="bg-white rounded-xl shadow overflow-x-auto">
+  <table class="w-full text-sm">
+    <thead><tr class="text-left text-xs text-slate-400 border-b">
+      <th class="px-4 py-2.5">Giảng viên</th><th class="px-2 py-2.5">Đơn vị</th>
+      <th class="px-2 py-2.5 text-center">Hợp lệ</th>
+      <th class="px-2 py-2.5 text-center">Điểm AI</th>
+      <th class="px-2 py-2.5 text-center">Thẩm định bắt buộc</th>
+      <th class="px-2 py-2.5">Trạng thái</th><th class="px-4 py-2.5"></th>
+    </tr></thead>
+    <tbody>
+      {% for r in rows %}
+      <tr class="border-b last:border-0 hover:bg-orange-50/40 {{ 'bg-amber-50' if (r.review or {}).get('mandatory') }}">
+        <td class="px-4 py-2.5 font-medium">{{ r.user.ho_ten or r.user.email }}
+          <span class="text-xs text-slate-400">{{ r.user.ma_gv }}</span></td>
+        <td class="px-2 py-2.5">{{ r.user.khoa or '' }}</td>
+        <td class="px-2 py-2.5 text-center">
+          {% if r.sub.get('valid') is true %}✅{% elif r.sub.get('valid') is false %}<span title="{{ (r.sub.validation or {}).get('warnings', []) | join('; ') }}">❌</span>{% else %}–{% endif %}
+        </td>
+        <td class="px-2 py-2.5 text-center font-bold">
+          {{ '%g' % r.sub.ai_total if r.sub.get('ai_total') is not none else '–' }}
+          {% if (r.sub.get('grade_job') or {}).get('running') %}<span class="text-amber-600 text-xs">⏳</span>
+          {% elif r.sub.get('ai_graded') %}<span class="text-emerald-500 text-xs" title="Đã chấm tự động">✓AI</span>{% endif %}
+        </td>
+        <td class="px-2 py-2.5 text-center">
+          {% if (r.review or {}).get('mandatory') %}
+            <span class="text-amber-600 font-semibold" title="{{ r.review.mandatory_reason }}">⚠ Bắt buộc</span>
+          {% else %}–{% endif %}
+        </td>
+        <td class="px-2 py-2.5">{{ status_labels.get(r.sub.status, r.sub.status) }}</td>
+        <td class="px-4 py-2.5 text-right whitespace-nowrap">
+          {% if not (r.sub.get('grade_job') or {}).get('running') %}
+          <form method="post" action="/council/submission/{{ r.sub.id }}/grade" class="inline"
+                onsubmit="return confirm('Chấm tự động hồ sơ của {{ r.user.ho_ten }}?')">
+            <button class="text-emerald-700 text-xs hover:underline">⚡ Chấm</button>
+          </form>
+          {% endif %}
+          <a href="/council/submission/{{ r.sub.id }}" class="text-orange-700 font-semibold hover:underline ml-2">Thẩm định →</a>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="px-4 py-8 text-center text-slate-400">Chưa có hồ sơ nào.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if pages > 1 %}
+{% set cbase = '/council?' ~ ('khoa=' ~ (khoa | urlencode) ~ '&' if khoa else '') ~ ('status=' ~ (status | urlencode) ~ '&' if status else '') %}
+<nav class="flex flex-wrap items-center justify-center gap-1 mt-4 text-sm">
+  <a class="px-3 py-1.5 rounded border {{ 'pointer-events-none opacity-40' if page <= 1 else 'hover:bg-slate-50' }}"
+     href="{{ cbase }}page={{ page - 1 }}">‹ Trước</a>
+  {% for p in range(1, pages + 1) %}
+    {% if p == 1 or p == pages or (p >= page - 2 and p <= page + 2) %}
+      <a class="px-3 py-1.5 rounded border {{ 'bg-orange-600 text-white border-orange-600' if p == page else 'hover:bg-slate-50' }}"
+         href="{{ cbase }}page={{ p }}">{{ p }}</a>
+    {% elif p == page - 3 or p == page + 3 %}<span class="px-1 text-slate-400">…</span>{% endif %}
+  {% endfor %}
+  <a class="px-3 py-1.5 rounded border {{ 'pointer-events-none opacity-40' if page >= pages else 'hover:bg-slate-50' }}"
+     href="{{ cbase }}page={{ page + 1 }}">Sau ›</a>
+</nav>
+{% endif %}
+<p class="text-center text-xs text-slate-400 mt-2">
+  Trang {{ page }}/{{ pages }} · hiển thị {{ rows | length }} / {{ total }} hồ sơ · {{ per_page }} dòng/trang
+</p>
+{% endblock %}

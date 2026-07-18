@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}Thẩm định — {{ owner.ho_ten }}{% endblock %}
+{% block content %}
+<a href="/council" class="text-sm text-slate-500 hover:underline">← Danh sách hồ sơ</a>
+
+<div class="flex flex-wrap items-center gap-3 mt-2 mb-4">
+  <h1 class="text-xl font-bold">{{ owner.ho_ten }} <span class="text-slate-400 text-base">({{ owner.ma_gv }} — {{ owner.khoa }}{% if owner.chuc_vu %} · {{ owner.chuc_vu }}{% endif %})</span></h1>
+  <span class="text-sm px-2.5 py-1 rounded-full bg-slate-200">{{ sub.status }}</span>
+  {% if review and review.mandatory %}
+  <span class="text-sm px-2.5 py-1 rounded-full bg-amber-100 text-amber-700" title="{{ review.mandatory_reason }}">
+    ⚠ Thẩm định bắt buộc: {{ review.mandatory_reason }}</span>
+  {% endif %}
+  <span class="ml-auto text-lg">Tổng hiện tại: <b class="text-orange-700">{{ '%g' % total_now }}</b>/100</span>
+</div>
+
+<!-- Chấm tự động từng giảng viên (kiểm thử / chấm trước hạn) -->
+<div class="bg-white rounded-xl shadow p-4 mb-4 flex flex-wrap items-center gap-3 text-sm">
+  <div>
+    <span class="font-semibold">Chấm tự động bằng AI</span>
+    {% if sub.get('ai_graded') %}
+      <span class="text-emerald-600">— đã chấm lúc {{ (sub.ai_graded_at or '')[:16] | replace('T',' ') }} · điểm AI {{ '%g' % (sub.ai_total or 0) }}/100</span>
+    {% else %}
+      <span class="text-slate-400">— chưa chấm</span>
+    {% endif %}
+  </div>
+  {% if grade_job.get('running') %}
+    <span class="text-amber-600 font-semibold">⏳ Đang chấm... (bắt đầu {{ (grade_job.started_at or '')[:16] | replace('T',' ') }})</span>
+    <script>setTimeout(() => location.reload(), 4000)</script>
+  {% else %}
+    <form method="post" action="/council/submission/{{ sub.id }}/grade" class="ml-auto"
+          onsubmit="return confirm('Chấm tự động hồ sơ này bằng AI theo rubric? (Không ảnh hưởng quyền sửa của giảng viên trước hạn)')">
+      <button class="bg-orange-600 hover:bg-orange-700 text-white rounded-lg px-4 py-2 font-semibold">
+        {{ '🔄 Chấm lại' if sub.get('ai_graded') else '▶ Chấm tự động hồ sơ này' }}</button>
+    </form>
+  {% endif %}
+  {% if grade_job.get('error') %}<p class="w-full text-red-600">Lỗi chấm: {{ grade_job.error }}</p>{% endif %}
+  {% if request.query_params.get('grading') %}<p class="w-full text-emerald-700">Đã bắt đầu chấm — trang sẽ tự cập nhật.</p>{% endif %}
+</div>
+
+{% if scores %}
+<div class="bg-white rounded-xl shadow p-4 mb-4 flex flex-wrap items-center gap-3 text-sm">
+  <span class="font-semibold">📄 Phiếu đánh giá</span>
+  <span class="text-slate-500">Tổng hợp kết quả chấm (thông tin GV, điểm từng tiêu chí, nhận xét, xếp loại) để lưu trữ/in.</span>
+  <a href="/council/submission/{{ sub.id }}/report.docx"
+     class="ml-auto bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 font-semibold">⬇ Tải Word (.docx)</a>
+  <a href="/council/submission/{{ sub.id }}/report.pdf"
+     class="bg-red-600 hover:bg-red-700 text-white rounded-lg px-4 py-2 font-semibold">⬇ Tải PDF</a>
+</div>
+{% endif %}
+
+{% if sub.get('anomaly_flags') %}
+<div class="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 mb-4 text-sm">
+  <b>Dấu hiệu bất thường do AI phát hiện:</b>
+  <ul class="list-disc ml-5">{% for f in sub.anomaly_flags %}<li>{{ f }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+<!-- Phần A + tài liệu -->
+<div class="grid lg:grid-cols-2 gap-4 mb-5">
+  <div class="bg-white rounded-xl shadow p-4 text-sm">
+    <h2 class="font-semibold mb-2">Phần A — Thông tin kê khai</h2>
+    {% set pa = sub.part_a or {} %}
+    <p>Học phần: <b>{{ pa.hoc_phan }}</b></p>
+    <p>Công cụ AI: {{ (pa.cong_cu_ai or []) | join(', ') }}</p>
+    <p>Tự đánh giá mức thành thạo: {{ pa.muc_thanh_thao }}/5</p>
+  </div>
+  <div class="bg-white rounded-xl shadow p-4 text-sm">
+    <div class="flex items-center mb-2">
+      <h2 class="font-semibold">Tài liệu đã nộp ({{ items | length }})</h2>
+      <a href="/council/submission/{{ sub.id }}/download.zip"
+         class="ml-auto text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded px-3 py-1.5">⬇ Tải tất cả (ZIP)</a>
+    </div>
+    <div class="max-h-44 overflow-auto space-y-1">
+      {% for it in items %}
+      <div class="flex gap-2 items-center">
+        <span class="text-xs bg-slate-100 rounded px-1.5">{{ it.part }}·{{ 'SP' if it.kind == 'product' else 'MC' }}</span>
+        {% if it.type == 'file' %}
+          <a href="/file/{{ it.id }}" class="text-orange-700 hover:underline truncate">{{ it.original_name }}</a>
+        {% else %}
+          <a href="{{ it.url }}" target="_blank" rel="noopener" class="text-orange-700 hover:underline truncate">🔗 {{ it.original_name }}</a>
+          {% if not it.link_ok %}<span class="text-xs text-red-500">(không truy cập được)</span>{% endif %}
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Điểm từng phần -->
+{% for part in parts %}
+{% set rows = scores.get(part, []) %}
+<div id="part-{{ part }}" class="bg-white rounded-xl shadow mb-4 overflow-hidden">
+  <div class="px-5 py-3 bg-slate-50 flex items-center">
+    <h2 class="font-semibold">Phần {{ part }} — {{ rubric.parts[part].name }}</h2>
+    <span class="ml-auto font-bold text-orange-700">{{ '%g' % totals[part] }}/{{ rubric.parts[part].max_score }}</span>
+  </div>
+  {% if rows %}
+  <table class="w-full text-sm">
+    <thead><tr class="text-left text-xs text-slate-400 border-b">
+      <th class="px-4 py-2">Tiêu chí</th><th class="px-2 py-2 text-center">Các lượt AI</th>
+      <th class="px-2 py-2 text-center">Điểm AI</th><th class="px-4 py-2 w-1/3">Nhận xét AI</th>
+      <th class="px-4 py-2">Điều chỉnh của Hội đồng</th>
+    </tr></thead>
+    <tbody>
+      {% for s in rows %}
+      <tr class="border-b last:border-0 align-top">
+        <td class="px-4 py-2 font-medium whitespace-nowrap">{{ s.criterion_id }} <span class="text-xs text-slate-400">/{{ s.max }}</span></td>
+        <td class="px-2 py-2 text-center text-xs text-slate-500">
+          {{ s.passes | join(' · ') }}
+          {% if s.needs_third_pass %}<div class="text-amber-600">lệch >15% → trung vị</div>{% endif %}
+          {% if s.evidence_penalty %}<div class="text-red-500">trừ minh chứng</div>{% endif %}
+        </td>
+        <td class="px-2 py-2 text-center font-bold">{{ '%g' % s.ai_score }}</td>
+        <td class="px-4 py-2 text-slate-600 text-xs">{{ s.ai_comment }}</td>
+        <td class="px-4 py-2">
+          {% if sub.status in ('graded', 'approved') or sub.get('ai_graded') %}
+          <form method="post" action="/council/submission/{{ sub.id }}/score" class="flex flex-col gap-1">
+            <input type="hidden" name="score_id" value="{{ s.id }}">
+            <div class="flex gap-1 items-center">
+              <input name="council_score" type="number" step="0.25" min="0" max="{{ s.max }}"
+                     value="{{ s.council_score if s.council_score is not none else s.ai_score }}"
+                     class="border rounded px-2 py-1 w-20 text-sm">
+              <span class="text-xs text-slate-400">/{{ s.max }}</span>
+            </div>
+            <input name="reason" placeholder="Lý do điều chỉnh (bắt buộc)" required
+                   value="{{ s.council_comment or '' }}" class="border rounded px-2 py-1 text-xs">
+            <button class="bg-slate-700 text-white text-xs rounded px-2 py-1 self-start">Lưu</button>
+          </form>
+          {% if s.adjusted_by %}<p class="text-[11px] text-blue-600 mt-1">Đã điều chỉnh bởi {{ s.adjusted_by }}</p>{% endif %}
+          {% else %}
+          <span class="text-xs text-slate-400">{{ s.council_comment or '—' }}</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="px-5 py-4 text-sm text-slate-400">Chưa chấm phần này.</p>
+  {% endif %}
+</div>
+{% endfor %}
+
+{% if appeal %}
+<div class="bg-blue-50 rounded-xl p-4 mb-4 text-sm">
+  <b>Phản hồi của giảng viên ({{ appeal.created_at[:10] }}):</b> {{ appeal.content }}
+  {% if appeal.resolution %}<p class="mt-1 text-blue-700">Đã trả lời: {{ appeal.resolution }}</p>
+  {% else %}<a class="text-orange-700 font-semibold hover:underline" href="/council/appeals">Trả lời tại trang Phản hồi →</a>{% endif %}
+</div>
+{% endif %}
+
+{% if sub.status in ('graded', 'approved') %}
+<form method="post" action="/council/submission/{{ sub.id }}/approve" class="text-center mb-8"
+      onsubmit="return confirm('Phê duyệt kết quả hồ sơ này? Điểm cuối = điểm Hội đồng đã điều chỉnh (nếu có).')">
+  <button class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl px-10 py-3 shadow">
+    {{ 'PHÊ DUYỆT LẠI (đã điều chỉnh)' if sub.status == 'approved' else 'PHÊ DUYỆT KẾT QUẢ' }}
+  </button>
+  {% if review and review.status in ('approved','published') %}
+  <p class="text-sm text-emerald-700 mt-2">Đã phê duyệt bởi {{ review.reviewer }} — tổng {{ '%g' % review.total_final }} điểm,
+    mức: {{ review.classification_label }}</p>
+  {% endif %}
+</form>
+{% elif sub.get('ai_graded') %}
+<div class="text-center mb-8 text-sm text-slate-500">
+  Đây là kết quả <b>chấm thử trước hạn</b> (trạng thái hồ sơ: {{ sub.status }}). Hội đồng có thể xem và điều chỉnh điểm để kiểm thử;
+  việc <b>phê duyệt chính thức</b> thực hiện sau khi hồ sơ được khóa lúc đến hạn nộp.
+</div>
+{% endif %}
+{% endblock %}
