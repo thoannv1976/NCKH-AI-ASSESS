@@ -1,23 +1,17 @@
-"""Test bảng điểm tất cả giảng viên: xem được điểm trước khi Hội đồng chốt + tải Excel."""
+"""Test bảng điểm tất cả công trình: xem được điểm trước khi Hội đồng chốt + tải Excel."""
 import io
 
 from app.services.grading.engine import grade_submission
 from app.services.grading.graders import MockGrader
-from tests.conftest import login, make_docx_bytes
-
-DOCX_CT = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+from tests.conftest import DOCX_CT, fill_part_a, login, make_docx_bytes
 
 
 def _submit(client, store, email, ma):
     login(client, email)
-    client.post("/lecturer/part-a", data={
-        "ho_ten": "GV " + ma, "ma_gv": ma, "khoa_bo_mon": "CNTT",
-        "hoc_phan": "AI", "cong_cu_ai": "Claude", "muc_thanh_thao": 4,
-    }, follow_redirects=False)
-    client.post("/lecturer/part/B/upload", data={"kind": "product"},
-                files={"files": (f"{ma}_PhanB.docx", make_docx_bytes("SP", ["x"]), DOCX_CT)}, follow_redirects=False)
-    client.post("/lecturer/part/B/upload", data={"kind": "evidence"},
-                files={"files": (f"{ma}_PhanB_MC.docx", make_docx_bytes("MC", ["y"]), DOCX_CT)}, follow_redirects=False)
+    fill_part_a(client, ma_gv=ma, ho_ten="SV " + ma, loai="thuyet_minh")
+    client.post("/lecturer/part/TM/upload", data={"kind": "product"},
+                files={"files": (f"{ma}_PhanTM.docx", make_docx_bytes("Thuyết minh", ["x"]), DOCX_CT)},
+                follow_redirects=False)
     client.post("/lecturer/submit", follow_redirects=False)
     return store.find_one("submissions", user_id=f"u-{'gv1' if ma == 'GV001' else 'gv2'}")
 

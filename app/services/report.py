@@ -1,4 +1,4 @@
-"""Sinh PHIẾU ĐÁNH GIÁ năng lực ứng dụng AI của giảng viên sau khi AI chấm.
+"""Sinh PHIẾU ĐÁNH GIÁ công trình/thuyết minh SV NCKH sau khi AI chấm.
 
 Hai định dạng từ cùng một bộ dữ liệu:
 - docx: python-docx (đã có sẵn).
@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import io
 
-from app.config import GRADED_PARTS, get_settings, now_vn
-from app.rubric import get_rubric
+from app.config import get_settings, now_vn
+from app.rubric import graded_parts, rubric_for
 from app.services.classify import classify
 
 _FONT_DIR = None
@@ -72,7 +72,7 @@ def build_report_context(store, sid: str) -> dict | None:
     if not sub:
         return None
     owner = store.get("users", sub["user_id"]) or {}
-    rubric = get_rubric(store)
+    rubric = rubric_for(store, sub)
     review = store.get("reviews", sid) or {}
     scores = store.find("scores", submission_id=sid)
     if not scores:
@@ -80,7 +80,7 @@ def build_report_context(store, sid: str) -> dict | None:
     by_id = {s["criterion_id"]: s for s in scores}
 
     parts, total, improvements = [], 0.0, []
-    for p in GRADED_PARTS:
+    for p in graded_parts(rubric):
         pdef = rubric["parts"][p]
         crits, psum = [], 0.0
         for c in pdef["criteria"]:
@@ -109,28 +109,33 @@ def build_report_context(store, sid: str) -> dict | None:
 
     flags = list(dict.fromkeys(sub.get("anomaly_flags") or []))
     ranked = sorted([p for p in parts if p["max_score"]], key=lambda p: -(p["total"] / p["max_score"]))
-    general = f"Hồ sơ đạt tổng {total:g}/100 điểm, xếp loại {cls_label}."
+    general = f"Công trình đạt tổng {total:g}/100 điểm, xếp loại {cls_label}."
     if ranked:
         general += f" Phần đạt tỷ lệ cao nhất: {ranked[0]['name']}; phần cần chú ý: {ranked[-1]['name']}."
     if flags:
-        general += f" AI phát hiện {len(flags)} dấu hiệu bất thường — đề nghị Hội đồng thẩm định kỹ."
+        general += f" AI phát hiện {len(flags)} dấu hiệu cần lưu ý — đề nghị Hội đồng thẩm định kỹ."
     if not improvements:
         improvements = ["Không có tiêu chí nào dưới 50% điểm tối đa."]
 
     pa = sub.get("part_a") or {}
     s = get_settings()
+    thanh_vien = pa.get("thanh_vien")
+    if isinstance(thanh_vien, list):
+        thanh_vien = ", ".join(thanh_vien)
     return {
+        "ten_cong_trinh": pa.get("ten_cong_trinh", ""),
+        "research_kind": rubric.get("research_kind", ""),
+        "rubric_label": rubric.get("label", ""),
         "ho_ten": owner.get("ho_ten") or pa.get("ho_ten", ""),
         "ma_gv": owner.get("ma_gv") or pa.get("ma_gv", ""),
-        "don_vi": owner.get("khoa") or pa.get("khoa_bo_mon", ""),
-        "chuc_vu": owner.get("chuc_vu", ""),
-        "hoc_phan": pa.get("hoc_phan", ""),
-        "cong_cu_ai": ", ".join(pa.get("cong_cu_ai") or []),
+        "don_vi": pa.get("khoa_bo_mon", "") or owner.get("khoa", ""),
+        "gvhd": pa.get("gvhd", ""),
+        "thanh_vien": thanh_vien or "",
         "parts": parts, "total": total, "cls_label": cls_label, "cls_note": cls_note,
         "general": general, "improvements": improvements, "flags": flags,
         "final": final, "status": sub.get("status", ""),
         "org_name": s.org_name, "app_title": s.app_title, "program_year": s.program_year,
-        "filename_base": f"PhieuDanhGia_{owner.get('ma_gv') or 'GV'}_{(owner.get('ho_ten') or '').replace(' ', '')}",
+        "filename_base": f"PhieuDanhGia_{owner.get('ma_gv') or 'SV'}_{(owner.get('ho_ten') or '').replace(' ', '')}",
     }
 
 
@@ -170,23 +175,25 @@ def report_to_docx(ctx: dict) -> bytes:
         q.add_run(lines[1]).bold = bolds[1]
 
     _p()
-    _p("PHIẾU ĐÁNH GIÁ NĂNG LỰC ỨNG DỤNG AI CỦA GIẢNG VIÊN",
+    _p("PHIẾU ĐÁNH GIÁ CÔNG TRÌNH SINH VIÊN NGHIÊN CỨU KHOA HỌC",
        align=WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=15, space_after=2)
-    _p(f"Chương trình {ctx['app_title']} {ctx['program_year']} · Hội đồng đánh giá cấp Trường (chấm vòng 2)",
+    _p(f"Cuộc thi SV NCKH {ctx['org_name']} năm {ctx['program_year']}"
+       + (f" · {ctx['rubric_label']}" if ctx.get("rubric_label") else ""),
        align=WD_ALIGN_PARAGRAPH.CENTER, italic=True, size=10, space_after=8)
 
     # Thông tin
     info = doc.add_table(rows=0, cols=2)
     info.style = "Table Grid"
     rows = [
-        ("Họ và tên giảng viên", ctx["ho_ten"]),
-        ("Mã giảng viên", ctx["ma_gv"]),
-        ("Chức vụ", ctx["chuc_vu"]),
-        ("Đơn vị / Khoa", ctx["don_vi"]),
-        ("Học phần", ctx["hoc_phan"]),
-        ("Công cụ AI sử dụng", ctx["cong_cu_ai"]),
+        ("Tên công trình", ctx["ten_cong_trinh"]),
+        ("Loại nghiên cứu", ctx["research_kind"]),
+        ("Chủ nhiệm", ctx["ho_ten"]),
+        ("MSSV chủ nhiệm", ctx["ma_gv"]),
+        ("Thành viên nhóm", ctx["thanh_vien"]),
+        ("Đơn vị (Viện/Khoa/Cơ sở)", ctx["don_vi"]),
+        ("Giảng viên hướng dẫn", ctx["gvhd"]),
         ("Tổng điểm", f"{ctx['total']:g} / 100 — {'Chính thức (Hội đồng duyệt)' if ctx['final'] else 'AI đề xuất (tạm tính)'}"),
-        ("Xếp loại năng lực", ctx["cls_label"]),
+        ("Xếp loại", ctx["cls_label"]),
     ]
     for k, v in rows:
         c0, c1 = info.add_row().cells
@@ -211,7 +218,7 @@ def report_to_docx(ctx: dict) -> bytes:
         r = tbl.add_row().cells
         r[0].merge(r[5])
         run = r[0].paragraphs[0].add_run(
-            f"PHẦN {p['key']} – {p['name']} (trọng số {p['weight']}%, tối đa {p['max_score']} điểm)")
+            f"PHẦN {p['key']} – {p['name']} (tối đa {p['max_score']} điểm)")
         run.bold = True
         _shade(r[0], "FFEDD5")
         for c in p["criteria"]:
@@ -247,8 +254,8 @@ def report_to_docx(ctx: dict) -> bytes:
             doc.add_paragraph(f, style="List Bullet")
     _p("ĐỊNH HƯỚNG SỬ DỤNG KẾT QUẢ", bold=True, size=12, space_after=2)
     _p(f"{ctx['cls_label']}: {ctx['cls_note']}")
-    _p("Kết quả dùng để phát triển đội ngũ, KHÔNG dùng xử lý thi đua/kỷ luật. "
-       "Giảng viên được phản hồi trong 03 ngày làm việc kể từ ngày công bố.",
+    _p("Nhóm sinh viên được gửi kết luận của Hội đồng và có thể khiếu nại/phản hồi trong "
+       "03 ngày làm việc kể từ ngày công bố theo Thể lệ Cuộc thi.",
        italic=True, size=10, color=RGBColor(0x6B, 0x72, 0x80))
 
     _p()
@@ -294,17 +301,19 @@ def report_to_pdf(ctx: dict) -> bytes:
     pdf.multi_cell(w, 5, "CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM\nĐộc lập - Tự do - Hạnh phúc",
                    align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.ln(3)
-    text("PHIẾU ĐÁNH GIÁ NĂNG LỰC ỨNG DỤNG AI CỦA GIẢNG VIÊN", size=14, b=True, align="C", h=7)
-    text(f"Chương trình {ctx['app_title']} {ctx['program_year']} · Hội đồng đánh giá cấp Trường (chấm vòng 2)",
+    text("PHIẾU ĐÁNH GIÁ CÔNG TRÌNH SINH VIÊN NGHIÊN CỨU KHOA HỌC", size=14, b=True, align="C", h=7)
+    text(f"Cuộc thi SV NCKH {ctx['org_name']} năm {ctx['program_year']}"
+         + (f" · {ctx['rubric_label']}" if ctx.get("rubric_label") else ""),
          size=9, align="C", h=5)
     pdf.ln(2)
 
     # Thông tin
-    info = [("Họ và tên giảng viên", ctx["ho_ten"]), ("Mã giảng viên", ctx["ma_gv"]),
-            ("Chức vụ", ctx["chuc_vu"]), ("Đơn vị / Khoa", ctx["don_vi"]),
-            ("Học phần", ctx["hoc_phan"]), ("Công cụ AI sử dụng", ctx["cong_cu_ai"]),
+    info = [("Tên công trình", ctx["ten_cong_trinh"]), ("Loại nghiên cứu", ctx["research_kind"]),
+            ("Chủ nhiệm", ctx["ho_ten"]), ("MSSV chủ nhiệm", ctx["ma_gv"]),
+            ("Thành viên nhóm", ctx["thanh_vien"]), ("Đơn vị (Viện/Khoa/Cơ sở)", ctx["don_vi"]),
+            ("Giảng viên hướng dẫn", ctx["gvhd"]),
             ("Tổng điểm", f"{ctx['total']:g} / 100 ({'chính thức' if ctx['final'] else 'AI đề xuất'})"),
-            ("Xếp loại năng lực", ctx["cls_label"])]
+            ("Xếp loại", ctx["cls_label"])]
     lw = 46
     for k, v in info:
         pdf.set_font("dj", "B", 10)
@@ -322,7 +331,7 @@ def report_to_pdf(ctx: dict) -> bytes:
     def crit_table(part):
         widths = (14, 52, 14, 14, 22, full - 116)
         pdf.set_fill_color(255, 237, 213)
-        text(f"PHẦN {part['key']} – {part['name']} (trọng số {part['weight']}%, tối đa {part['max_score']} điểm)",
+        text(f"PHẦN {part['key']} – {part['name']} (tối đa {part['max_score']} điểm)",
              size=9, b=True, h=6, fill=True)
         with pdf.table(col_widths=widths, line_height=5, first_row_as_headings=True,
                        text_align=("CENTER", "LEFT", "CENTER", "CENTER", "CENTER", "LEFT")) as table:
@@ -356,8 +365,8 @@ def report_to_pdf(ctx: dict) -> bytes:
     text("ĐỊNH HƯỚNG SỬ DỤNG KẾT QUẢ", size=11, b=True, h=6)
     text(f"{ctx['cls_label']}: {ctx['cls_note']}", size=10, h=5)
     pdf.set_text_color(110, 114, 128)
-    text("Kết quả dùng để phát triển đội ngũ, KHÔNG dùng xử lý thi đua/kỷ luật. "
-         "Giảng viên được phản hồi trong 03 ngày làm việc kể từ ngày công bố.", size=9, h=5)
+    text("Nhóm sinh viên được gửi kết luận của Hội đồng và có thể khiếu nại/phản hồi trong "
+         "03 ngày làm việc kể từ ngày công bố theo Thể lệ Cuộc thi.", size=9, h=5)
     pdf.set_text_color(0, 0, 0)
 
     pdf.ln(4)

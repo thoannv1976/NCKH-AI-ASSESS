@@ -3,8 +3,8 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-from app.config import GRADED_PARTS, ROLE_LECTURER, get_settings, now_vn, parse_dt
-from app.rubric import get_rubric
+from app.config import ROLE_LECTURER, get_settings, now_vn, parse_dt
+from app.rubric import graded_parts, rubric_for
 from app.services import audit
 from app.services.classify import classify
 from app.services.emailer import email_reminder, email_result
@@ -143,23 +143,25 @@ def send_reminders(store) -> int:
 
 # ---------- Theo dõi tình trạng nộp bài ----------
 
-def _missing_parts(sub: dict, items: list[dict]) -> list[str]:
-    """Các phần còn thiếu của một hồ sơ (Phần A + sản phẩm/minh chứng B–G)."""
+def _missing_parts(store, sub: dict, items: list[dict]) -> list[str]:
+    """Các phần còn thiếu của một hồ sơ (Phần A + sản phẩm/minh chứng các phần được chấm)."""
     missing = []
     if not part_a_complete(sub.get("part_a"))[0]:
         missing.append("Phần A")
-    for p in GRADED_PARTS:
+    rubric = rubric_for(store, sub)
+    evidence_required = rubric.get("evidence_required", False)
+    for p in graded_parts(rubric):
         prods = [i for i in items if i.get("part") == p and i.get("kind") == "product"]
         evs = [i for i in items if i.get("part") == p and i.get("kind") == "evidence"]
         if not prods:
             missing.append(f"{p} (sản phẩm)")
-        elif p != "G" and not evs:
+        elif evidence_required and p != "G" and not evs:
             missing.append(f"{p} (minh chứng)")
     return missing
 
 
 def submission_tracking(store) -> tuple[list[dict], dict]:
-    """Tổng hợp tình trạng nộp bài của từng giảng viên: đã nộp / bản nháp / chưa tạo hồ sơ.
+    """Tổng hợp tình trạng nộp bài của từng chủ nhiệm: đã nộp / bản nháp / chưa tạo hồ sơ.
 
     Với bản nháp: liệt kê phần còn thiếu; nếu không thiếu gì → 'đủ bài nhưng chưa bấm Nộp'.
     Một truy vấn cho users/submissions/submission_items rồi gộp trong bộ nhớ.
@@ -182,7 +184,7 @@ def submission_tracking(store) -> tuple[list[dict], dict]:
             counts["none"] += 1
         elif s.get("status") == "draft":
             items = items_by_sub.get(s["id"], [])
-            missing = _missing_parts(s, items)
+            missing = _missing_parts(store, s, items)
             ready = not missing
             ups = [i.get("uploaded_at") for i in items if i.get("uploaded_at")]
             rows.append({"user": u, "sub": s, "state": "draft", "missing": missing, "ready": ready,
@@ -201,10 +203,11 @@ def submission_tracking(store) -> tuple[list[dict], dict]:
 # ---------- Tổng hợp điểm & phê duyệt & công bố ----------
 
 def part_totals_final(store, submission_id: str) -> dict[str, float]:
-    rubric = get_rubric(store)
+    sub = store.get("submissions", submission_id)
+    rubric = rubric_for(store, sub)
     scores = store.find("scores", submission_id=submission_id)
     totals: dict[str, float] = {}
-    for part in GRADED_PARTS:
+    for part in graded_parts(rubric):
         part_max = rubric["parts"][part]["max_score"]
         ssum = sum(s.get("final_score") or 0 for s in scores if s["part"] == part)
         totals[part] = round(min(ssum, part_max), 2)
@@ -212,7 +215,7 @@ def part_totals_final(store, submission_id: str) -> dict[str, float]:
 
 
 def approve_submission(store, submission_id: str, reviewer: dict) -> dict:
-    rubric = get_rubric(store)
+    rubric = rubric_for(store, store.get("submissions", submission_id))
     totals = part_totals_final(store, submission_id)
     total = round(sum(totals.values()), 2)
     level = classify(total, rubric)
@@ -244,7 +247,8 @@ def publish_all(store, actor: dict) -> int:
         store.patch("reviews", sid, {"status": "published", "published_at": published_at})
         user = store.get("users", sub["user_id"])
         if user:
-            detail = [f"  Phần {p}: {v:g}/{get_rubric(store)['parts'][p]['max_score']}"
+            rubric = rubric_for(store, sub)
+            detail = [f"  Phần {p}: {v:g}/{rubric['parts'][p]['max_score']}"
                       for p, v in (review.get("part_totals") or {}).items()]
             email_result(store, user, review["total_final"], review.get("classification_label", ""), detail)
         count += 1

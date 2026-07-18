@@ -13,7 +13,21 @@
   <span class="ml-auto text-lg">Tổng hiện tại: <b class="text-orange-700">{{ '%g' % total_now }}</b>/100</span>
 </div>
 
-<!-- Chấm tự động từng giảng viên (kiểm thử / chấm trước hạn) -->
+<!-- Vòng đánh giá: quyết định phiếu chấm (thuyết minh / báo cáo) -->
+<div class="bg-white rounded-xl shadow p-4 mb-4 flex flex-wrap items-center gap-3 text-sm">
+  <span class="font-semibold">Vòng đánh giá</span>
+  <span class="text-slate-500">Đang áp phiếu: <b>{{ rubric.label }}</b></span>
+  <form method="post" action="/council/submission/{{ sub.id }}/vong" class="ml-auto flex items-center gap-2">
+    <select name="vong" class="border rounded-lg px-2 py-1.5">
+      <option value="tuyen_chon" {{ 'selected' if vong == 'tuyen_chon' }}>{{ vong_labels['tuyen_chon'] }}</option>
+      <option value="nghiem_thu" {{ 'selected' if vong == 'nghiem_thu' }}>{{ vong_labels['nghiem_thu'] }}</option>
+    </select>
+    <button class="bg-slate-700 hover:bg-slate-800 text-white rounded-lg px-3 py-1.5 font-semibold">Đổi vòng & chấm lại</button>
+  </form>
+  <p class="w-full text-xs text-slate-400">Đổi vòng để chấm đúng phiếu; điểm đã lưu của vòng kia được giữ nguyên (theo mã phần). Nhớ bấm “Chấm tự động” sau khi đổi vòng.</p>
+</div>
+
+<!-- Chấm tự động từng công trình (kiểm thử / chấm trước hạn) -->
 <div class="bg-white rounded-xl shadow p-4 mb-4 flex flex-wrap items-center gap-3 text-sm">
   <div>
     <span class="font-semibold">Chấm tự động bằng AI</span>
@@ -28,7 +42,7 @@
     <script>setTimeout(() => location.reload(), 4000)</script>
   {% else %}
     <form method="post" action="/council/submission/{{ sub.id }}/grade" class="ml-auto"
-          onsubmit="return confirm('Chấm tự động hồ sơ này bằng AI theo rubric? (Không ảnh hưởng quyền sửa của giảng viên trước hạn)')">
+          onsubmit="return confirm('Chấm tự động hồ sơ này bằng AI theo rubric? (Không ảnh hưởng quyền sửa của nhóm SV trước hạn)')">
       <button class="bg-orange-600 hover:bg-orange-700 text-white rounded-lg px-4 py-2 font-semibold">
         {{ '🔄 Chấm lại' if sub.get('ai_graded') else '▶ Chấm tự động hồ sơ này' }}</button>
     </form>
@@ -40,7 +54,7 @@
 {% if scores %}
 <div class="bg-white rounded-xl shadow p-4 mb-4 flex flex-wrap items-center gap-3 text-sm">
   <span class="font-semibold">📄 Phiếu đánh giá</span>
-  <span class="text-slate-500">Tổng hợp kết quả chấm (thông tin GV, điểm từng tiêu chí, nhận xét, xếp loại) để lưu trữ/in.</span>
+  <span class="text-slate-500">Tổng hợp kết quả chấm (thông tin công trình, điểm từng tiêu chí, nhận xét, xếp loại) để lưu trữ/in.</span>
   <a href="/council/submission/{{ sub.id }}/report.docx"
      class="ml-auto bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 font-semibold">⬇ Tải Word (.docx)</a>
   <a href="/council/submission/{{ sub.id }}/report.pdf"
@@ -58,11 +72,14 @@
 <!-- Phần A + tài liệu -->
 <div class="grid lg:grid-cols-2 gap-4 mb-5">
   <div class="bg-white rounded-xl shadow p-4 text-sm">
-    <h2 class="font-semibold mb-2">Phần A — Thông tin kê khai</h2>
+    <h2 class="font-semibold mb-2">Phần A — Thông tin công trình</h2>
     {% set pa = sub.part_a or {} %}
-    <p>Học phần: <b>{{ pa.hoc_phan }}</b></p>
-    <p>Công cụ AI: {{ (pa.cong_cu_ai or []) | join(', ') }}</p>
-    <p>Tự đánh giá mức thành thạo: {{ pa.muc_thanh_thao }}/5</p>
+    <p>Tên công trình: <b>{{ pa.ten_cong_trinh }}</b></p>
+    <p>Loại nghiên cứu: {{ rubric.label or pa.loai }}</p>
+    <p>Chủ nhiệm: <b>{{ pa.ho_ten }}</b> — MSSV: {{ pa.ma_gv }}</p>
+    <p>Đơn vị: {{ pa.khoa_bo_mon }}</p>
+    <p>Thành viên: {{ pa.thanh_vien | join('; ') if pa.thanh_vien is not string else (pa.thanh_vien or '') }}</p>
+    <p>GVHD: {{ pa.gvhd or '(chưa phân công)' }}</p>
   </div>
   <div class="bg-white rounded-xl shadow p-4 text-sm">
     <div class="flex items-center mb-2">
@@ -143,7 +160,7 @@
 
 {% if appeal %}
 <div class="bg-blue-50 rounded-xl p-4 mb-4 text-sm">
-  <b>Phản hồi của giảng viên ({{ appeal.created_at[:10] }}):</b> {{ appeal.content }}
+  <b>Phản hồi của nhóm SV ({{ appeal.created_at[:10] }}):</b> {{ appeal.content }}
   {% if appeal.resolution %}<p class="mt-1 text-blue-700">Đã trả lời: {{ appeal.resolution }}</p>
   {% else %}<a class="text-orange-700 font-semibold hover:underline" href="/council/appeals">Trả lời tại trang Phản hồi →</a>{% endif %}
 </div>

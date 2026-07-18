@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 from app.models.schemas import CriterionGrade, PartGradeResult
 from app.services.grading.prompts import system_prompt, user_prompt
 
-logger = logging.getLogger("dnu.grading")
+logger = logging.getLogger("ftu.grading")
 
 
 def is_transient_error(exc: Exception) -> bool:
@@ -114,7 +114,7 @@ class ClaudeGrader(Grader):
     def grade(self, part, part_def, context, products_text, evidence_text, pass_no):
         sys_blocks = [{
             "type": "text",
-            "text": system_prompt(part, part_def),
+            "text": system_prompt(part, part_def, context),
             "cache_control": {"type": "ephemeral"},
         }]
         msg = user_prompt(part, context, products_text, evidence_text)

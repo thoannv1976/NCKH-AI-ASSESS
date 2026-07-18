@@ -1,11 +1,16 @@
-"""Unit test: logic chấm 2 lượt + trung vị, trừ minh chứng, trần điểm E, phân loại."""
+"""Unit test: logic chấm 2 lượt + trung vị, trần điểm phần, cờ dưới mức tối thiểu, phân loại."""
 from app.rubric import load_rubric_seed
 from app.services.classify import classify
 from app.services.grading.engine import (
-    apply_evidence_rules, combine_two_passes, median_of_three, part_total,
+    apply_evidence_rules, combine_two_passes, flag_below_min, median_of_three, part_total,
 )
 from app.services.ops import appeal_window_open, working_days_since
 from app.config import parse_dt
+
+
+def _type(key: str) -> dict:
+    """Bộ tiêu chí của một loại công trình (hình dạng rubric đơn)."""
+    return load_rubric_seed()["types"][key]
 
 
 def test_two_passes_close_means_average():
@@ -42,50 +47,61 @@ def test_scores_clamped():
     assert score == 8.0
 
 
-def test_evidence_penalty_missing():
-    rubric = load_rubric_seed()
-    part_b = rubric["parts"]["B"]
+def test_evidence_penalty_optional_and_applies_when_required():
+    """apply_evidence_rules chỉ trừ điểm khi được gọi với evidence_missing=True."""
+    part = {"criteria": [
+        {"id": "X1", "max": 8},
+        {"id": "X2", "max": 6, "is_evidence_criterion": True},
+    ]}
     finals = {
-        "B1": {"score": 6.0, "comment": "tốt", "evidence_penalty": False},
-        "B2": {"score": 4.0, "comment": "khá", "evidence_penalty": False},
-        "B3": {"score": 3.0, "comment": "khá", "evidence_penalty": False},
-        "B4": {"score": 1.5, "comment": "có", "evidence_penalty": False},
+        "X1": {"score": 6.0, "comment": "tốt", "evidence_penalty": False},
+        "X2": {"score": 4.0, "comment": "có", "evidence_penalty": False},
     }
-    apply_evidence_rules(part_b, finals, evidence_missing=True)
-    assert finals["B1"]["score"] == 3.0   # trừ 50%
-    assert finals["B2"]["score"] == 2.0
-    assert finals["B4"]["score"] == 0.0   # tiêu chí minh chứng → 0
+    apply_evidence_rules(part, finals, evidence_missing=True)
+    assert finals["X1"]["score"] == 3.0   # trừ 50%
+    assert finals["X2"]["score"] == 0.0   # tiêu chí minh chứng → 0
     assert all(finals[c]["evidence_penalty"] for c in finals)
 
 
 def test_evidence_no_penalty_when_present():
-    rubric = load_rubric_seed()
-    part_b = rubric["parts"]["B"]
-    finals = {c["id"]: {"score": 2.0, "comment": "", "evidence_penalty": False} for c in part_b["criteria"]}
-    apply_evidence_rules(part_b, finals, evidence_missing=False)
+    part = _type("bao_cao_co_ban")["parts"]["I"]
+    finals = {c["id"]: {"score": 2.0, "comment": "", "evidence_penalty": False} for c in part["criteria"]}
+    apply_evidence_rules(part, finals, evidence_missing=False)
     assert all(f["score"] == 2.0 for f in finals.values())
 
 
-def test_part_e_bonus_capped_at_20():
-    rubric = load_rubric_seed()
-    part_e = rubric["parts"]["E"]
-    finals = {
-        "E1": {"score": 10.0}, "E2": {"score": 8.0}, "E3": {"score": 2.0},
-        "E_BONUS": {"score": 2.0},
-    }
-    assert part_total("E", part_e, finals) == 20.0  # 22 → trần 20
+def test_part_total_capped_at_max_score():
+    part_i = _type("bao_cao_co_ban")["parts"]["I"]  # tối đa 85
+    finals = {c["id"]: {"score": c["max"]} for c in part_i["criteria"]}
+    assert part_total("I", part_i, finals) == 85.0
 
 
-def test_classification_thresholds():
-    rubric = load_rubric_seed()
-    assert classify(85, rubric)["key"] == "dan_dat"
-    assert classify(100, rubric)["key"] == "dan_dat"
-    assert classify(84.5, rubric)["key"] == "thanh_thao"
-    assert classify(70, rubric)["key"] == "thanh_thao"
-    assert classify(69.9, rubric)["key"] == "co_ban"
-    assert classify(50, rubric)["key"] == "co_ban"
-    assert classify(49.9, rubric)["key"] == "khoi_dau"
-    assert classify(0, rubric)["key"] == "khoi_dau"
+def test_flag_below_min_thuyet_minh():
+    part_tm = _type("thuyet_minh")["parts"]["TM"]
+    finals = {c["id"]: {"score": c["max"], "comment": "", "name": c["name"]} for c in part_tm["criteria"]}
+    # Hạ TM1 xuống dưới mức tối thiểu (min=6)
+    finals["TM1"]["score"] = 4.0
+    flags = flag_below_min("TM", part_tm, finals)
+    assert any("TM1" in f and "tối thiểu" in f for f in flags)
+
+
+def test_classification_bao_cao():
+    bc = _type("bao_cao_co_ban")
+    assert classify(80, bc)["key"] == "du_dieu_kien_cap_truong"
+    assert classify(100, bc)["key"] == "du_dieu_kien_cap_truong"
+    assert classify(79.9, bc)["key"] == "kha"
+    assert classify(65, bc)["key"] == "kha"
+    assert classify(50, bc)["key"] == "dat"
+    assert classify(49.9, bc)["key"] == "khong_dat"
+    assert classify(0, bc)["key"] == "khong_dat"
+
+
+def test_classification_thuyet_minh():
+    tm = _type("thuyet_minh")
+    assert classify(52, tm)["key"] == "de_nghi_thuc_hien"
+    assert classify(100, tm)["key"] == "de_nghi_thuc_hien"
+    assert classify(51.9, tm)["key"] == "khong_thuc_hien"
+    assert classify(0, tm)["key"] == "khong_thuc_hien"
 
 
 def test_appeal_window_3_working_days():
@@ -99,12 +115,11 @@ def test_appeal_window_3_working_days():
 
 def test_prompt_includes_four_levels():
     """Prompt chấm phải liệt kê 4 mức neo (Xuất sắc/Đạt/Cơ bản/Chưa đạt) kèm khoảng điểm."""
-    from app.rubric import load_rubric_seed
     from app.services.grading.prompts import system_prompt
 
-    rubric = load_rubric_seed()
-    sp = system_prompt("B", rubric["parts"]["B"])
+    part_tm = _type("thuyet_minh")["parts"]["TM"]
+    sp = system_prompt("TM", part_tm)
     for label in ["Xuất sắc", "Đạt yêu cầu", "Cơ bản", "Chưa đạt"]:
         assert label in sp
-    # B1 tối đa 8 → mức Xuất sắc khoảng 7.25–8 điểm
-    assert "7.25–8 điểm" in sp
+    # TM1 tối đa 10 → mức Xuất sắc khoảng 9–10 điểm
+    assert "9–10 điểm" in sp

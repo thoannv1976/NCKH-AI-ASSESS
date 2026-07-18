@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% block title %}Bảng điểm tất cả giảng viên{% endblock %}
+{% block title %}Bảng điểm tất cả công trình{% endblock %}
 {% block content %}
 {% set status_labels = {'submitted':'Đã nộp','locked':'Đã khóa','grading':'Đang chấm','graded':'Đã chấm','approved':'Đã duyệt','published':'Đã công bố'} %}
 <div class="flex flex-wrap items-center gap-3 mb-4">
-  <h1 class="text-xl font-bold">Bảng điểm giảng viên</h1>
+  <h1 class="text-xl font-bold">Bảng điểm công trình</h1>
   <span class="text-sm text-slate-500">Đã chấm: <b>{{ graded }}</b>/{{ rows | length }} hồ sơ</span>
   <form method="get" class="ml-auto flex gap-2 text-sm">
     <select name="khoa" class="border rounded-lg px-2 py-1.5">
@@ -30,7 +30,7 @@
 <div class="bg-white rounded-xl shadow overflow-x-auto">
   <table class="w-full text-sm">
     <thead><tr class="text-left text-xs text-slate-400 border-b">
-      <th class="px-3 py-2.5">Mã GV</th><th class="px-2 py-2.5">Họ tên</th><th class="px-2 py-2.5">Đơn vị</th>
+      <th class="px-3 py-2.5">MSSV</th><th class="px-2 py-2.5">Họ tên</th><th class="px-2 py-2.5">Đơn vị</th>
       {% for p in parts %}<th class="px-1 py-2.5 text-center" title="{{ rubric.parts[p].name }}">{{ p }}<br><span class="text-slate-300">/{{ rubric.parts[p].max_score }}</span></th>{% endfor %}
       <th class="px-2 py-2.5 text-center">Tổng</th><th class="px-2 py-2.5">Mức</th>
       <th class="px-2 py-2.5">Tính chất</th><th class="px-3 py-2.5"></th>

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Tải sản phẩm giảng viên{% endblock %}
+{% block title %}Tải sản phẩm công trình{% endblock %}
 {% block content %}
 {% set status_labels = {'submitted':'Đã nộp','locked':'Đã khóa','grading':'Đang chấm','graded':'Đã chấm','approved':'Đã duyệt','published':'Đã công bố'} %}
 {% set qk = ('khoa=' ~ (khoa | urlencode) ~ '&') if khoa else '' %}
@@ -9,7 +9,7 @@
 {% endmacro %}
 
 <div class="flex flex-wrap items-center gap-3 mb-3">
-  <h1 class="text-xl font-bold">Tải sản phẩm giảng viên</h1>
+  <h1 class="text-xl font-bold">Tải sản phẩm công trình</h1>
   <span class="text-sm text-slate-500">{{ total }} hồ sơ</span>
   <form method="get" class="ml-auto flex gap-2 text-sm">
     <input type="hidden" name="sort" value="{{ sort }}">
@@ -27,9 +27,9 @@
 </div>
 
 <p class="text-sm text-slate-500 mb-3">
-  Tích chọn các giảng viên rồi bấm <b>Tải đã chọn</b> để tải gộp một gói. Mỗi gói gồm sản phẩm + minh chứng theo
+  Tích chọn các công trình rồi bấm <b>Tải đã chọn</b> để tải gộp một gói. Mỗi gói gồm sản phẩm + minh chứng theo
   cấu trúc thư mục, kèm thông tin Phần A, danh sách liên kết và <b>DANH_SACH.csv</b>. Gói được nén theo luồng nên
-  tải được cả khi nhiều giảng viên; tệp lớn vẫn cần chút thời gian.
+  tải được cả khi nhiều công trình; tệp lớn vẫn cần chút thời gian.
 </p>
 
 <form method="post" action="/admin/download/selected.zip" id="selForm">
@@ -38,12 +38,12 @@
       <label class="flex items-center gap-1.5 text-sm"><input type="checkbox" id="selAll"> Chọn tất cả</label>
       <button id="selBtn" type="submit" disabled
               class="ml-auto bg-orange-600 hover:bg-orange-700 disabled:opacity-40 text-white rounded-lg px-4 py-1.5 text-sm font-semibold">
-        ⬇ Tải giảng viên đã chọn (ZIP)</button>
+        ⬇ Tải công trình đã chọn (ZIP)</button>
     </div>
     <table class="w-full text-sm">
       <thead><tr class="text-left text-xs text-slate-400 border-b whitespace-nowrap">
         <th class="px-3 py-2.5 w-8"></th>
-        <th class="px-3 py-2.5">{{ sortlink('ma_gv', 'Mã GV') }}</th>
+        <th class="px-3 py-2.5">{{ sortlink('ma_gv', 'MSSV') }}</th>
         <th class="px-2 py-2.5">{{ sortlink('ho_ten', 'Họ tên') }}</th>
         <th class="px-2 py-2.5">{{ sortlink('don_vi', 'Đơn vị') }}</th>
         <th class="px-2 py-2.5 text-center">{{ sortlink('files', 'Tệp') }}</th>
@@ -105,7 +105,7 @@
     const n = _cbs().filter(c => c.checked).length;
     const b = document.getElementById('selBtn');
     b.disabled = n === 0;
-    b.textContent = n ? `⬇ Tải ${n} giảng viên đã chọn (ZIP)` : '⬇ Tải giảng viên đã chọn (ZIP)';
+    b.textContent = n ? `⬇ Tải ${n} công trình đã chọn (ZIP)` : '⬇ Tải công trình đã chọn (ZIP)';
   }
   document.getElementById('selAll').addEventListener('change', e => {
     _cbs().forEach(c => { c.checked = e.target.checked; });

@@ -1,4 +1,4 @@
-"""DNU AI-Assess — ứng dụng FastAPI chính."""
+"""FTU NCKH-Assess — ứng dụng FastAPI chính (quản lý & đánh giá đề tài NCKH sinh viên)."""
 from __future__ import annotations
 
 import logging
@@ -57,7 +57,7 @@ def create_app() -> FastAPI:
         try:
             seed(app.state.store, app.state.storage)
         except Exception:  # noqa: BLE001 — seed lỗi không được chặn app khởi động
-            logging.getLogger("dnu").exception("Seed demo thất bại")
+            logging.getLogger("ftu").exception("Seed demo thất bại")
 
     # ADMIN_EMAILS: bảo đảm các email này là quản trị viên + đặt/đặt-lại mật khẩu theo ADMIN_PASSWORD
     from app.config import ROLE_ADMIN as _ADMIN
@@ -72,18 +72,18 @@ def create_app() -> FastAPI:
             if settings.admin_password:
                 fields["password_hash"] = hash_password(settings.admin_password)
             app.state.store.patch("users", existing["id"], fields)
-            logging.getLogger("dnu").info("Cập nhật quản trị viên: %s", email)
+            logging.getLogger("ftu").info("Cập nhật quản trị viên: %s", email)
         else:
             app.state.store.add("users", {
                 "email": email, "ho_ten": email.split("@")[0], "ma_gv": "",
                 "khoa": "", "bo_mon": "", "role": _ADMIN, "active": True,
                 "password_hash": hash_password(settings.admin_password) if settings.admin_password else None,
             })
-            logging.getLogger("dnu").info("Tạo quản trị viên từ ADMIN_EMAILS: %s", email)
+            logging.getLogger("ftu").info("Tạo quản trị viên từ ADMIN_EMAILS: %s", email)
 
     _users = app.state.store.all("users")
-    logging.getLogger("dnu").info(
-        "Khởi động DNU AI-Assess: APP_MODE=%s, SEED_DEMO=%s, %d người dùng (%d có mật khẩu), admin_emails=%s",
+    logging.getLogger("ftu").info(
+        "Khởi động FTU NCKH-Assess: APP_MODE=%s, SEED_DEMO=%s, %d người dùng (%d có mật khẩu), admin_emails=%s",
         settings.app_mode, os.environ.get("SEED_DEMO", ""), len(_users),
         sum(1 for u in _users if u.get("password_hash")), settings.admin_emails,
     )
@@ -102,7 +102,7 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(Exception)
     async def err_handler(request: Request, exc: Exception):
-        logging.getLogger("dnu").exception("Lỗi không xử lý: %s", exc)
+        logging.getLogger("ftu").exception("Lỗi không xử lý: %s", exc)
         return HTMLResponse("<h3>Có lỗi hệ thống. Vui lòng thử lại hoặc liên hệ quản trị viên.</h3>", status_code=500)
 
     return app

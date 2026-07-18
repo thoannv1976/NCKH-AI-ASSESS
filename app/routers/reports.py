@@ -7,8 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import Response
 
 from app.auth import require_role
-from app.config import GRADED_PARTS, ROLE_ADMIN, ROLE_COUNCIL, ROLE_LECTURER, get_settings, now_vn
-from app.rubric import get_rubric
+from app.config import ROLE_ADMIN, ROLE_COUNCIL, ROLE_LECTURER, get_settings, now_vn
+from app.rubric import all_class_labels, get_rubric, graded_parts, rubric_for, top_class_keys
 from app.services.classify import classify
 
 router = APIRouter(prefix="/reports")
@@ -24,9 +24,9 @@ def scores_rows(store, khoa: str = "") -> list[dict]:
     xem được kể cả khi Hội đồng chưa chốt. Mỗi hồ sơ chỉ truy vấn scores một lần."""
     from collections import defaultdict
 
-    rubric = get_rubric(store)
     users = {u["id"]: u for u in store.all("users")}
     reviews = {r["submission_id"]: r for r in store.all("reviews")}
+    cols = graded_parts(get_rubric(store))  # cột hiển thị theo loại mặc định
     rows = []
     for s in store.all("submissions"):
         if s.get("status") == "draft":
@@ -36,6 +36,8 @@ def scores_rows(store, khoa: str = "") -> list[dict]:
             continue
         if khoa and (u.get("khoa") or "") != khoa:
             continue
+        sub_rubric = rubric_for(store, s)
+        part_max = {p: pd["max_score"] for p, pd in sub_rubric.get("parts", {}).items()}
         scores = store.find("scores", submission_id=s["id"])
         has = bool(scores)
         part_sum: dict[str, float] = defaultdict(float)
@@ -44,14 +46,15 @@ def scores_rows(store, khoa: str = "") -> list[dict]:
             part_sum[sc["part"]] += sc.get("final_score") or 0
             if sc.get("council_score") is not None:
                 adjusted = True
-        totals = {p: round(min(part_sum.get(p, 0), rubric["parts"][p]["max_score"]), 2) for p in GRADED_PARTS}
-        total = round(sum(totals.values()), 2) if has else None
+        part_totals = {p: round(min(v, part_max.get(p, v)), 2) for p, v in part_sum.items()}
+        totals = {p: part_totals.get(p, "") for p in cols}  # map về cột hiển thị
+        total = round(sum(part_totals.values()), 2) if has else None
         review = reviews.get(s["id"]) or {}
         final = review.get("status") in ("approved", "published")
         level = None
         if total is not None:
             # nếu đã chốt thì dùng phân loại đã lưu, ngược lại tính tạm theo điểm hiện tại
-            level = review.get("classification_label") if final else classify(total, rubric)["label"]
+            level = review.get("classification_label") if final else classify(total, sub_rubric)["label"]
         rows.append({
             "user": u, "sub": s, "totals": totals, "total": total, "has": has,
             "level": level, "final": final, "adjusted": adjusted,
@@ -66,23 +69,24 @@ def build_summary(store) -> dict:
     users = {u["id"]: u for u in store.all("users") if u["role"] == ROLE_LECTURER}
     subs = store.all("submissions")
     reviews = {r["submission_id"]: r for r in store.all("reviews")}
-    rubric = get_rubric(store)
 
     by_khoa: dict[str, dict] = {}
     for u in users.values():
-        k = u.get("khoa") or "(Chưa rõ khoa)"
+        k = u.get("khoa") or "(Chưa rõ đơn vị)"
         by_khoa.setdefault(k, {"khoa": k, "total": 0, "submitted": 0, "graded": 0, "approved": 0, "published": 0})
         by_khoa[k]["total"] += 1
-    classification = {c["key"]: 0 for c in rubric["classification"]}
-    class_labels = {c["key"]: c["label"] for c in rubric["classification"]}
-    part_sums = {p: [] for p in GRADED_PARTS}
+    class_labels = all_class_labels(store)
+    classification = {key: 0 for key in class_labels}
+    top_keys = top_class_keys(store)
+    from collections import defaultdict
+    part_sums: dict[str, list] = defaultdict(list)
     core_list = []
 
     for s in subs:
         u = users.get(s["user_id"])
         if not u:
             continue
-        k = u.get("khoa") or "(Chưa rõ khoa)"
+        k = u.get("khoa") or "(Chưa rõ đơn vị)"
         st = s.get("status")
         if st in ("submitted", "locked", "grading", "graded", "approved", "published"):
             by_khoa[k]["submitted"] += 1
@@ -97,10 +101,11 @@ def build_summary(store) -> dict:
             classification[r["classification"]] = classification.get(r["classification"], 0) + 1
             for p, v in (r.get("part_totals") or {}).items():
                 part_sums[p].append(v)
-            if r["classification"] == "dan_dat":
+            if r["classification"] in top_keys:
                 core_list.append({"user": u, "total": r["total_final"], "submission_id": s["id"]})
 
-    part_avgs = {p: (round(sum(v) / len(v), 2) if v else 0) for p, v in part_sums.items()}
+    cols = graded_parts(get_rubric(store))
+    part_avgs = {p: (round(sum(part_sums[p]) / len(part_sums[p]), 2) if part_sums.get(p) else 0) for p in cols}
     core_list.sort(key=lambda x: -x["total"])
     return {
         "by_khoa": sorted(by_khoa.values(), key=lambda x: x["khoa"]),
@@ -126,8 +131,9 @@ def scores_page(request: Request, khoa: str = "", user: dict = staff_dep):
     users = {u["id"]: u for u in store.all("users")}
     khoas = sorted({u.get("khoa", "") for u in users.values() if u.get("khoa")})
     graded = sum(1 for r in rows if r["has"])
+    rubric = get_rubric(store)
     return render(request, "reports/scores.html", user, rows=rows, khoas=khoas, khoa=khoa,
-                  rubric=get_rubric(store), parts=GRADED_PARTS, graded=graded)
+                  rubric=rubric, parts=graded_parts(rubric), graded=graded)
 
 
 @router.get("/scores.xlsx")
@@ -137,14 +143,15 @@ def scores_xlsx(request: Request, khoa: str = "", user: dict = staff_dep):
 
     store = request.app.state.store
     rubric = get_rubric(store)
+    cols = graded_parts(rubric)
     rows = scores_rows(store, khoa=khoa)
 
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Bảng điểm"
-    header = ["Mã GV", "Họ tên", "Email", "Đơn vị", "Bộ môn", "Chức vụ", "Trạng thái"]
-    header += [f"Phần {p} ({rubric['parts'][p]['max_score']})" for p in GRADED_PARTS]
-    header += ["Tổng (hiện tại)", "Mức năng lực", "Tính chất điểm"]
+    header = ["MSSV chủ nhiệm", "Chủ nhiệm", "Email", "Đơn vị", "Bộ môn/Ngành", "Vai trò", "Trạng thái"]
+    header += [f"Phần {p} ({rubric['parts'][p]['max_score']})" for p in cols]
+    header += ["Tổng (hiện tại)", "Xếp loại", "Tính chất điểm"]
     ws.append(header)
     for c in ws[1]:
         c.fill = PatternFill("solid", fgColor="EA580C")
@@ -158,7 +165,7 @@ def scores_xlsx(request: Request, khoa: str = "", user: dict = staff_dep):
             u.get("ma_gv", ""), u.get("ho_ten", ""), u.get("email", ""),
             u.get("khoa", ""), u.get("bo_mon", ""), u.get("chuc_vu", ""),
             status_labels.get(r["sub"].get("status"), r["sub"].get("status")),
-            *[(r["totals"][p] if r["has"] else "") for p in GRADED_PARTS],
+            *[(r["totals"].get(p, "") if r["has"] else "") for p in cols],
             (r["total"] if r["total"] is not None else ""), (r["level"] or ""), nature,
         ])
     for col, w in zip("ABCDEF", [10, 24, 28, 22, 22, 18]):
@@ -207,14 +214,15 @@ def export_xlsx(request: Request, user: dict = staff_dep):
 
     store = request.app.state.store
     rubric = get_rubric(store)
+    cols = graded_parts(rubric)
     users = {u["id"]: u for u in store.all("users")}
     reviews = {r["submission_id"]: r for r in store.all("reviews")}
 
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Tổng hợp"
-    header = ["Mã GV", "Họ tên", "Email", "Đơn vị", "Bộ môn", "Chức vụ", "Trạng thái"]
-    header += [f"Phần {p}" for p in GRADED_PARTS] + ["Tổng điểm", "Mức năng lực"]
+    header = ["MSSV chủ nhiệm", "Chủ nhiệm", "Email", "Đơn vị", "Bộ môn/Ngành", "Vai trò", "Trạng thái"]
+    header += [f"Phần {p}" for p in cols] + ["Tổng điểm", "Xếp loại"]
     ws.append(header)
     for s in sorted(store.all("submissions"), key=lambda x: -(x.get("final_total") or x.get("ai_total") or 0)):
         u = users.get(s["user_id"], {})
@@ -222,15 +230,20 @@ def export_xlsx(request: Request, user: dict = staff_dep):
         pt = r.get("part_totals") or {}
         ws.append([
             u.get("ma_gv", ""), u.get("ho_ten", ""), u.get("email", ""), u.get("khoa", ""), u.get("bo_mon", ""),
-            u.get("chuc_vu", ""), s.get("status", ""), *[pt.get(p, "") for p in GRADED_PARTS],
+            u.get("chuc_vu", ""), s.get("status", ""), *[pt.get(p, "") for p in cols],
             r.get("total_final", ""), r.get("classification_label", ""),
         ])
 
-    ws2 = wb.create_sheet("Phân loại")
-    ws2.append(["Mức năng lực", "Số lượng", "Định hướng sử dụng kết quả"])
+    ws2 = wb.create_sheet("Xếp loại")
+    ws2.append(["Xếp loại", "Số lượng", "Ghi chú"])
     summary = build_summary(store)
-    for c in rubric["classification"]:
-        ws2.append([c["label"], summary["classification"].get(c["key"], 0), c["note"]])
+    labels = all_class_labels(store)
+    for key, label in labels.items():
+        note = ""
+        for tdef in rubric.get("classification", []):
+            if tdef["key"] == key:
+                note = tdef.get("note", "")
+        ws2.append([label, summary["classification"].get(key, 0), note])
 
     buf = io.BytesIO()
     wb.save(buf)
@@ -245,7 +258,7 @@ def export_xlsx(request: Request, user: dict = staff_dep):
 @router.get("/profile/{sid}")
 def profile(sid: str, request: Request,
             user: dict = Depends(require_role(ROLE_LECTURER, ROLE_COUNCIL, ROLE_ADMIN))):
-    """Hồ sơ năng lực ứng dụng AI của giảng viên — trang in được (Ctrl+P → PDF)."""
+    """Hồ sơ đánh giá công trình NCKH — trang in được (Ctrl+P → PDF)."""
     store = request.app.state.store
     sub = store.get("submissions", sid)
     if not sub:
@@ -255,7 +268,7 @@ def profile(sid: str, request: Request,
             raise HTTPException(403)
     owner = store.get("users", sub["user_id"])
     review = store.get("reviews", sid)
-    rubric = get_rubric(store)
+    rubric = rubric_for(store, sub)
     scores = store.find("scores", submission_id=sid)
     by_part: dict[str, list] = {}
     for s in sorted(scores, key=lambda x: x["criterion_id"]):
@@ -266,4 +279,4 @@ def profile(sid: str, request: Request,
             if c["key"] == review["classification"]:
                 level_note = c["note"]
     return render(request, "reports/profile.html", user, sub=sub, owner=owner, review=review,
-                  rubric=rubric, scores=by_part, parts=GRADED_PARTS, level_note=level_note)
+                  rubric=rubric, scores=by_part, parts=graded_parts(rubric), level_note=level_note)

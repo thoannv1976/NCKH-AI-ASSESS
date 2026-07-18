@@ -1,4 +1,4 @@
-"""Phân loại 4 mức năng lực theo bảng xếp loại của đề bài."""
+"""Phân loại/xếp loại công trình theo bảng classification của bộ tiêu chí đang dùng."""
 from __future__ import annotations
 
 

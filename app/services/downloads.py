@@ -26,7 +26,7 @@ def _safe(s: str | None) -> str:
 
 
 def folder_name(user: dict) -> str:
-    return f"{_safe(user.get('ma_gv') or 'GV')}_{_safe(user.get('ho_ten') or '')}"
+    return f"{_safe(user.get('ma_gv') or 'SV')}_{_safe(user.get('ho_ten') or '')}"
 
 
 def zip_filename(tag: str = "") -> str:
@@ -79,14 +79,17 @@ class _ChunkBuffer:
 
 def _info_text(sub: dict, user: dict) -> str:
     pa = sub.get("part_a") or {}
+    thanh_vien = pa.get("thanh_vien")
+    if isinstance(thanh_vien, list):
+        thanh_vien = ", ".join(thanh_vien)
     return (
-        f"Họ tên: {pa.get('ho_ten', '')}\n"
-        f"Mã GV: {pa.get('ma_gv', '')}\n"
-        f"Chức vụ: {user.get('chuc_vu', '')}\n"
-        f"Đơn vị/Bộ môn: {pa.get('khoa_bo_mon', '')}\n"
-        f"Học phần: {pa.get('hoc_phan', '')}\n"
-        f"Công cụ AI: {', '.join(pa.get('cong_cu_ai') or [])}\n"
-        f"Mức tự đánh giá: {pa.get('muc_thanh_thao', '')}\n"
+        f"Tên công trình: {pa.get('ten_cong_trinh', '')}\n"
+        f"Loại nghiên cứu: {pa.get('loai', '')}\n"
+        f"Chủ nhiệm: {pa.get('ho_ten', '')}\n"
+        f"MSSV chủ nhiệm: {pa.get('ma_gv', '')}\n"
+        f"Đơn vị (Viện/Khoa/Cơ sở): {pa.get('khoa_bo_mon', '')}\n"
+        f"Thành viên nhóm: {thanh_vien or ''}\n"
+        f"Giảng viên hướng dẫn: {pa.get('gvhd', '')}\n"
         f"Trạng thái hồ sơ: {sub.get('status', '')}\n"
     )
 
@@ -132,7 +135,7 @@ def stream_zip(store, storage, subs: list[dict], *, manifest: bool = False,
     """Sinh luồng byte ZIP cho danh sách hồ sơ. manifest=True thêm DANH_SACH.csv ở gốc."""
     users = {u["id"]: u for u in store.all("users")}
     buf = _ChunkBuffer()
-    rows = [["Mã GV", "Họ tên", "Đơn vị", "Bộ môn", "Chức vụ", "Trạng thái", "Số tệp"]]
+    rows = [["MSSV chủ nhiệm", "Chủ nhiệm", "Đơn vị", "Bộ môn/Ngành", "Vai trò", "Trạng thái", "Số tệp"]]
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_STORED, allowZip64=True) as zf:
         for s in subs:
             u = users.get(s["user_id"]) or {}

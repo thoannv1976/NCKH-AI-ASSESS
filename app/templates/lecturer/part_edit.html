@@ -13,9 +13,9 @@
   <!-- Yêu cầu -->
   <div class="bg-white rounded-xl shadow p-5 lg:col-span-1">
     <h1 class="font-bold">Phần {{ part }} — {{ part_def.name }}</h1>
-    <p class="text-xs text-slate-500 mt-1">Trọng số {{ part_def.weight }}% — tối đa {{ part_def.max_score }} điểm</p>
+    <p class="text-xs text-slate-500 mt-1">Tối đa {{ part_def.max_score }} điểm</p>
     <p class="text-sm mt-3 whitespace-pre-line">{{ part_def.description }}</p>
-    <h3 class="font-semibold text-sm mt-4">Sản phẩm phải nộp:</h3>
+    <h3 class="font-semibold text-sm mt-4">Tài liệu / sản phẩm cần nộp:</h3>
     <ul class="list-disc ml-5 text-sm text-slate-600 mt-1">
       {% for p in part_def.products %}<li>{{ p }}</li>{% endfor %}
     </ul>
@@ -26,15 +26,14 @@
     </ul>
     {% endif %}
     <div class="mt-4 bg-orange-50 rounded-lg p-3 text-xs text-orange-800">
-      Tên tệp theo cấu trúc <b>{{ ma_gv or 'MãGV' }}_Phan{{ part }}_TênSảnPhẩm</b>.
+      Tên tệp nên theo cấu trúc <b>{{ ma_gv or 'MSSV' }}_Phan{{ part }}_TênTàiLiệu</b>.
       Định dạng: docx, pdf, pptx, xlsx, mp4 — tối đa 200MB/tệp.
-      Sản phẩm thiếu minh chứng bị trừ tối đa 50% điểm tiêu chí liên quan.
     </div>
   </div>
 
   <!-- Nộp bài -->
   <div class="lg:col-span-2 space-y-5">
-    {% for kind, label, icon in [('product', 'Sản phẩm', '📄'), ('evidence', 'Minh chứng sử dụng AI', '🔎')] %}
+    {% for kind, label, icon in [('product', 'Tài liệu / sản phẩm', '📄'), ('evidence', 'Minh chứng / sản phẩm khoa học kèm theo', '🔎')] %}
     {% if kind != 'evidence' or part != 'G' %}
     <div class="bg-white rounded-xl shadow p-5">
       <h2 class="font-semibold">{{ icon }} {{ label }}</h2>

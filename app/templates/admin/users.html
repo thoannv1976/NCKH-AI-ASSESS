@@ -80,7 +80,7 @@
           <td class="px-3 py-2 text-slate-500 whitespace-nowrap">{{ u.email }}</td>
           <td class="px-3 py-2 whitespace-nowrap">{{ u.khoa }}</td>
           <td class="px-3 py-2 text-slate-600 whitespace-nowrap">{{ u.get('chuc_vu', '') }}</td>
-          <td class="px-3 py-2 whitespace-nowrap">{{ {'lecturer':'Giảng viên','council':'Hội đồng','admin':'Quản trị'}[u.role] }}</td>
+          <td class="px-3 py-2 whitespace-nowrap">{{ {'lecturer':'Chủ nhiệm/Nhóm SV','council':'Hội đồng','admin':'Quản trị'}[u.role] }}</td>
           <td class="px-4 py-2 text-right whitespace-nowrap">
             <button class="text-orange-700 text-xs hover:underline" @click="pw = (pw === '{{ u.id }}' ? null : '{{ u.id }}')">Đặt mật khẩu</button>
             <form method="post" action="/admin/users/{{ u.id }}/toggle" class="inline"

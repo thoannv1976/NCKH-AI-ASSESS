@@ -1,8 +1,7 @@
 """Test tổng hợp tình trạng nộp bài: đã nộp / nháp / chưa tạo hồ sơ."""
-from app.config import GRADED_PARTS
 from app.db import new_id
 from app.services.ops import submission_tracking
-from tests.conftest import login
+from tests.conftest import graded_parts_for, login
 
 
 def test_tracking_three_states(client, store):
@@ -30,14 +29,11 @@ def test_tracking_ready_but_unsubmitted(client, store):
     """Draft đủ bài nhưng chưa bấm Nộp → ready=True."""
     sid = new_id()
     store.put("submissions", sid, {"id": sid, "user_id": "u-gv1", "status": "draft",
-        "part_a": {"ho_ten": "An", "ma_gv": "GV001", "khoa_bo_mon": "CNTT",
-                   "hoc_phan": "AI", "cong_cu_ai": ["Claude"], "muc_thanh_thao": 4}})
-    for p in GRADED_PARTS:
+        "part_a": {"ten_cong_trinh": "Đề tài mẫu", "loai": "thuyet_minh", "ho_ten": "An",
+                   "ma_gv": "GV001", "khoa_bo_mon": "Viện KT&KDQT"}})
+    for p in graded_parts_for(store, "thuyet_minh"):
         store.add("submission_items", {"submission_id": sid, "part": p, "kind": "product",
                                        "type": "file", "original_name": "x.docx"})
-        if p != "G":
-            store.add("submission_items", {"submission_id": sid, "part": p, "kind": "evidence",
-                                           "type": "file", "original_name": "e.docx"})
     rows, counts = submission_tracking(store)
     assert counts["ready_unsubmitted"] >= 1
     row = next(r for r in rows if r["user"]["id"] == "u-gv1")

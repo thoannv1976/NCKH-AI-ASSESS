@@ -3,12 +3,12 @@
 {% block content %}
 <div class="flex flex-wrap items-center gap-3 mb-4">
   <h1 class="text-xl font-bold">Dashboard chương trình đánh giá</h1>
-  <a href="/reports/scores" class="ml-auto bg-orange-600 hover:bg-orange-700 text-white rounded-lg px-4 py-2 text-sm font-semibold">📋 Bảng điểm tất cả giảng viên</a>
+  <a href="/reports/scores" class="ml-auto bg-orange-600 hover:bg-orange-700 text-white rounded-lg px-4 py-2 text-sm font-semibold">📋 Bảng điểm tất cả công trình</a>
   <a href="/reports/export.xlsx" class="bg-slate-700 text-white rounded-lg px-4 py-2 text-sm">⬇ Xuất báo cáo toàn trường (Excel)</a>
 </div>
 
 <div class="grid sm:grid-cols-4 gap-4 mb-6">
-  {% for label, val in [('Giảng viên', summary.lecturers), ('Đã nộp', summary.submitted), ('Đã chấm', summary.graded), ('Đã công bố', summary.published)] %}
+  {% for label, val in [('Chủ nhiệm', summary.lecturers), ('Đã nộp', summary.submitted), ('Đã chấm', summary.graded), ('Đã công bố', summary.published)] %}
   <div class="bg-white rounded-xl shadow p-4 text-center">
     <p class="text-3xl font-extrabold text-orange-700">{{ val }}</p>
     <p class="text-xs text-slate-400 uppercase mt-1">{{ label }}</p>
@@ -22,7 +22,7 @@
     <canvas id="khoaChart" height="220"></canvas>
   </div>
   <div class="bg-white rounded-xl shadow p-5">
-    <h2 class="font-semibold mb-3">Phân loại 4 mức năng lực</h2>
+    <h2 class="font-semibold mb-3">Xếp loại công trình</h2>
     <canvas id="classChart" height="220"></canvas>
     <p class="text-xs text-slate-400 mt-2">Điểm trung bình theo phần:
       {% for p, v in summary.part_avgs.items() %}{{ p }}: <b>{{ v }}</b>{{ ' · ' if not loop.last }}{% endfor %}
@@ -34,7 +34,7 @@
   <h2 class="font-semibold mb-2">Tiến độ chi tiết theo đơn vị</h2>
   <table class="w-full text-sm">
     <thead><tr class="text-left text-xs text-slate-400 border-b">
-      <th class="py-2">Đơn vị</th><th class="text-center">Giảng viên</th><th class="text-center">Đã nộp</th>
+      <th class="py-2">Đơn vị</th><th class="text-center">Chủ nhiệm</th><th class="text-center">Đã nộp</th>
       <th class="text-center">Đã chấm</th><th class="text-center">Đã duyệt</th><th class="text-center">Đã công bố</th>
       <th class="text-center">Tỷ lệ nộp</th>
     </tr></thead>
@@ -53,10 +53,10 @@
 </div>
 
 <div class="bg-white rounded-xl shadow p-5">
-  <h2 class="font-semibold mb-2">Danh sách đề xuất giảng viên nòng cốt (mức Dẫn dắt, ≥85 điểm)</h2>
+  <h2 class="font-semibold mb-2">Công trình tiêu biểu (đủ điều kiện xét chọn dự Cuộc thi cấp Trường)</h2>
   <table class="w-full text-sm">
     <thead><tr class="text-left text-xs text-slate-400 border-b">
-      <th class="py-2">#</th><th>Giảng viên</th><th>Đơn vị</th><th class="text-center">Tổng điểm</th><th></th>
+      <th class="py-2">#</th><th>Chủ nhiệm</th><th>Đơn vị</th><th class="text-center">Tổng điểm</th><th></th>
     </tr></thead>
     <tbody>
       {% for c in summary.core_list %}
@@ -65,10 +65,10 @@
         <td class="font-medium">{{ c.user.ho_ten }} <span class="text-xs text-slate-400">{{ c.user.ma_gv }}</span></td>
         <td>{{ c.user.khoa }}</td>
         <td class="text-center font-bold text-orange-700">{{ '%g' % c.total }}</td>
-        <td class="text-right"><a class="text-orange-700 hover:underline" href="/reports/profile/{{ c.submission_id }}">Hồ sơ năng lực →</a></td>
+        <td class="text-right"><a class="text-orange-700 hover:underline" href="/reports/profile/{{ c.submission_id }}">Phiếu đánh giá →</a></td>
       </tr>
       {% else %}
-      <tr><td colspan="5" class="py-4 text-center text-slate-400">Chưa có hồ sơ đạt mức Dẫn dắt (hoặc chưa phê duyệt).</td></tr>
+      <tr><td colspan="5" class="py-4 text-center text-slate-400">Chưa có công trình đủ điều kiện (hoặc chưa phê duyệt).</td></tr>
       {% endfor %}
     </tbody>
   </table>
@@ -82,7 +82,7 @@ new Chart(document.getElementById('khoaChart'), {
   data: {
     labels: summary.by_khoa.map(k => k.khoa),
     datasets: [
-      {label: 'Giảng viên', data: summary.by_khoa.map(k => k.total), backgroundColor: '#cbd5e1'},
+      {label: 'Chủ nhiệm', data: summary.by_khoa.map(k => k.total), backgroundColor: '#cbd5e1'},
       {label: 'Đã nộp', data: summary.by_khoa.map(k => k.submitted), backgroundColor: '#fb923c'},
       {label: 'Đã chấm', data: summary.by_khoa.map(k => k.graded), backgroundColor: '#16a34a'},
     ]

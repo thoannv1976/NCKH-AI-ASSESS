@@ -1,4 +1,4 @@
-"""Phân hệ thẩm định — dành cho Hội đồng đánh giá cấp Trường."""
+"""Phân hệ thẩm định — dành cho Hội đồng đánh giá công trình SV NCKH."""
 from __future__ import annotations
 
 import threading
@@ -7,8 +7,10 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
 
 from app.auth import require_role
-from app.config import GRADED_PARTS, ROLE_ADMIN, ROLE_COUNCIL, get_settings, now_vn
-from app.rubric import get_rubric
+from app.config import ROLE_ADMIN, ROLE_COUNCIL, get_settings, now_vn
+from app.rubric import (
+    VONG_LABELS, VONG_NGHIEM_THU, VONG_TUYEN_CHON, active_rubric, graded_parts, submission_vong,
+)
 from app.services import audit
 from app.services.grading.engine import grade_submission
 from app.services.grading.graders import create_grader
@@ -60,7 +62,7 @@ def detail(sid: str, request: Request, user: dict = council_dep):
     if not sub:
         raise HTTPException(404)
     owner = store.get("users", sub["user_id"])
-    rubric = get_rubric(store)
+    rubric = active_rubric(store, sub)
     review = store.get("reviews", sid)
     items = store.find("submission_items", submission_id=sid)
     scores = store.find("scores", submission_id=sid)
@@ -71,8 +73,29 @@ def detail(sid: str, request: Request, user: dict = council_dep):
     appeal = store.find_one("appeals", submission_id=sid)
     return render(request, "council/detail.html", user, sub=sub, owner=owner, rubric=rubric,
                   review=review, items=items, scores=by_part, totals=totals,
-                  total_now=round(sum(totals.values()), 2), parts=GRADED_PARTS, appeal=appeal,
-                  grade_job=sub.get("grade_job") or {})
+                  total_now=round(sum(totals.values()), 2), parts=graded_parts(rubric), appeal=appeal,
+                  grade_job=sub.get("grade_job") or {},
+                  vong=submission_vong(sub), vong_labels=VONG_LABELS)
+
+
+@router.post("/submission/{sid}/vong")
+def set_vong(sid: str, request: Request, vong: str = Form(...), user: dict = council_dep):
+    """Đổi vòng đánh giá của công trình (tuyển chọn thuyết minh ↔ nghiệm thu báo cáo).
+
+    Đổi vòng sẽ áp phiếu đánh giá tương ứng; xóa checkpoint chấm cũ để chấm lại theo
+    phiếu của vòng mới (điểm đã lưu theo mã phần vẫn giữ, không mất)."""
+    from app.services.grading.engine import invalidate_grading
+
+    store = request.app.state.store
+    sub = store.get("submissions", sid)
+    if not sub:
+        raise HTTPException(404)
+    if vong not in (VONG_TUYEN_CHON, VONG_NGHIEM_THU):
+        raise HTTPException(400, "Vòng đánh giá không hợp lệ")
+    store.patch("submissions", sid, {"vong": vong})
+    invalidate_grading(store, sid)
+    audit.log(store, user, "set_vong", f"submissions/{sid}", note=f"Chuyển vòng đánh giá → {VONG_LABELS.get(vong, vong)}")
+    return RedirectResponse(f"/council/submission/{sid}?vong_set=1", status_code=303)
 
 
 @router.post("/submission/{sid}/grade")

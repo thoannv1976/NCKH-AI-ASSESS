@@ -7,13 +7,13 @@
 {% if q.get('locked') %}<div class="bg-emerald-50 border border-emerald-200 rounded-lg p-3 mb-4 text-sm">Đã khóa {{ q.get('locked') }} hồ sơ ({{ q.get('invalid') }} không hợp lệ).</div>{% endif %}
 {% if q.get('published') %}<div class="bg-emerald-50 border border-emerald-200 rounded-lg p-3 mb-4 text-sm">Đã công bố {{ q.get('published') }} hồ sơ và gửi email kết quả.</div>{% endif %}
 {% if q.get('reminded') %}<div class="bg-emerald-50 border border-emerald-200 rounded-lg p-3 mb-4 text-sm">Đã gửi {{ q.get('reminded') }} email nhắc hạn.</div>{% endif %}
-{% if q.get('unlocked') is not none %}<div class="bg-emerald-50 border border-emerald-200 rounded-lg p-3 mb-4 text-sm">Đã mở khóa {{ q.get('unlocked') }} hồ sơ — giảng viên có thể sửa/nộp lại đến hạn mới.</div>{% endif %}
+{% if q.get('unlocked') is not none %}<div class="bg-emerald-50 border border-emerald-200 rounded-lg p-3 mb-4 text-sm">Đã mở khóa {{ q.get('unlocked') }} hồ sơ — nhóm SV có thể sửa/nộp lại đến hạn mới.</div>{% endif %}
 {% if q.get('reset_grading') is not none %}<div class="bg-emerald-50 border border-emerald-200 rounded-lg p-3 mb-4 text-sm">Đã đặt lại {{ q.get('reset_grading') }} hồ sơ bị kẹt "đang chấm" — nay có thể bấm chấm lại.</div>{% endif %}
 
 <div class="grid sm:grid-cols-4 gap-4 mb-6">
   <div class="bg-white rounded-xl shadow p-4 text-center">
     <p class="text-3xl font-extrabold text-orange-700">{{ counts.lecturers }}</p>
-    <p class="text-xs text-slate-400 uppercase mt-1">Giảng viên</p>
+    <p class="text-xs text-slate-400 uppercase mt-1">Chủ nhiệm</p>
   </div>
   <div class="bg-white rounded-xl shadow p-4 text-center">
     <p class="text-3xl font-extrabold text-orange-700">{{ counts.submissions }}</p>
@@ -53,7 +53,7 @@
           <button class="bg-slate-700 text-white rounded px-3 py-1 text-xs ml-1">Khóa ngay</button>
         </form>
         <form method="post" action="/admin/unlock" class="inline"
-              onsubmit="return confirm('Mở khóa toàn bộ hồ sơ đang khóa để giảng viên nộp/sửa lại? Dùng khi vừa GIA HẠN nộp bài. (Hồ sơ đã chấm giữ nguyên.)')">
+              onsubmit="return confirm('Mở khóa toàn bộ hồ sơ đang khóa để nhóm SV nộp/sửa lại? Dùng khi vừa GIA HẠN nộp bài. (Hồ sơ đã chấm giữ nguyên.)')">
           <button class="bg-amber-600 text-white rounded px-3 py-1 text-xs ml-1">Mở khóa (khi gia hạn)</button>
         </form>
         <div class="mt-1 text-xs text-slate-500">Khi gia hạn nộp bài: đổi hạn ở
@@ -62,7 +62,7 @@
       </li>
       <li>
         <b>Chấm AI lần lượt từng hồ sơ</b> — Admin/Hội đồng vào
-        <a href="/council" class="text-orange-700 hover:underline">trang Thẩm định</a>, mở từng giảng viên và bấm
+        <a href="/council" class="text-orange-700 hover:underline">trang Thẩm định</a>, mở từng công trình và bấm
         <b>“Chấm tự động hồ sơ này”</b> (mỗi tiêu chí 2 lượt độc lập, lệch &gt;15% chấm lượt 3 lấy trung vị).
         <div class="mt-1 text-xs text-slate-500">Chấm theo từng bài để kiểm soát tiến độ và chi phí — không chấm hàng loạt tự động.
           Theo dõi token/chi phí tại <a href="/admin/ai-usage" class="text-orange-700 hover:underline">Chi phí AI</a>.</div>
@@ -77,7 +77,7 @@
       <li><b>Hội đồng điều chỉnh & phê duyệt</b> tại <a href="/council" class="text-orange-700 hover:underline">trang thẩm định</a>
         (hồ sơ ≥85 điểm hoặc bất thường minh chứng: thẩm định bắt buộc)</li>
       <li>
-        <b>Công bố kết quả</b> — gửi email kèm nhận xét đến từng giảng viên:
+        <b>Công bố kết quả</b> — gửi email kèm nhận xét đến từng nhóm SV:
         <form method="post" action="/admin/publish" class="inline" onsubmit="return confirm('Công bố mọi hồ sơ đã phê duyệt?')">
           <button class="bg-emerald-600 text-white rounded px-3 py-1 text-xs ml-1">Công bố</button>
         </form>
@@ -92,10 +92,10 @@
       <form method="post" action="/admin/remind" onsubmit="return confirm('Gửi email nhắc các hồ sơ còn thiếu?')">
         <button class="w-full text-left border rounded-lg px-4 py-2 hover:bg-orange-50">📧 Gửi email nhắc hạn (mục còn thiếu)</button>
       </form>
-      <a href="/admin/users" class="block border rounded-lg px-4 py-2 hover:bg-orange-50">👥 Quản lý giảng viên / Hội đồng (import CSV)</a>
+      <a href="/admin/users" class="block border rounded-lg px-4 py-2 hover:bg-orange-50">👥 Quản lý người dùng (SV / Hội đồng) (import CSV)</a>
       <a href="/admin/config" class="block border rounded-lg px-4 py-2 hover:bg-orange-50">⚙️ Cấu hình AI, mốc thời gian & rubric</a>
       <a href="/admin/ai-usage" class="block border rounded-lg px-4 py-2 hover:bg-orange-50">💰 Thống kê sử dụng AI (token, chi phí)</a>
-      <a href="/admin/downloads" class="block border rounded-lg px-4 py-2 hover:bg-orange-50">📦 Tải sản phẩm giảng viên (ZIP)</a>
+      <a href="/admin/downloads" class="block border rounded-lg px-4 py-2 hover:bg-orange-50">📦 Tải sản phẩm công trình (ZIP)</a>
       <a href="/reports" class="block border rounded-lg px-4 py-2 hover:bg-orange-50">📊 Dashboard & xuất báo cáo</a>
       <a href="/admin/audit" class="block border rounded-lg px-4 py-2 hover:bg-orange-50">🗒 Nhật ký thao tác (audit log)</a>
       <a href="/admin/emails" class="block border rounded-lg px-4 py-2 hover:bg-orange-50">✉️ Nhật ký email</a>
