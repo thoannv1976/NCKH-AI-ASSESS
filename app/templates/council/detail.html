@@ -13,46 +13,59 @@
   <span class="ml-auto text-lg">Tổng hiện tại: <b class="text-orange-700">{{ '%g' % total_now }}</b>/100</span>
 </div>
 
-<!-- Vòng đánh giá: quyết định phiếu chấm (thuyết minh / báo cáo) -->
-<div class="bg-white rounded-xl shadow p-4 mb-4 flex flex-wrap items-center gap-3 text-sm">
-  <span class="font-semibold">Vòng đánh giá</span>
-  <span class="text-slate-500">Đang áp phiếu: <b>{{ rubric.label }}</b></span>
-  <form method="post" action="/council/submission/{{ sub.id }}/vong" class="ml-auto flex items-center gap-2">
-    <select name="vong" class="border rounded-lg px-2 py-1.5">
-      <option value="tuyen_chon" {{ 'selected' if vong == 'tuyen_chon' }}>{{ vong_labels['tuyen_chon'] }}</option>
-      <option value="nghiem_thu" {{ 'selected' if vong == 'nghiem_thu' }}>{{ vong_labels['nghiem_thu'] }}</option>
-    </select>
-    <button class="bg-slate-700 hover:bg-slate-800 text-white rounded-lg px-3 py-1.5 font-semibold">Đổi vòng & chấm lại</button>
-  </form>
-  <p class="w-full text-xs text-slate-400">Đổi vòng để chấm đúng phiếu; điểm đã lưu của vòng kia được giữ nguyên (theo mã phần). Nhớ bấm “Chấm tự động” sau khi đổi vòng.</p>
-</div>
-
-<!-- Chấm tự động từng công trình (kiểm thử / chấm trước hạn) -->
-<div class="bg-white rounded-xl shadow p-4 mb-4 flex flex-wrap items-center gap-3 text-sm">
-  <div>
-    <span class="font-semibold">Chấm tự động bằng AI</span>
-    {% if sub.get('ai_graded') %}
-      <span class="text-emerald-600">— đã chấm lúc {{ (sub.ai_graded_at or '')[:16] | replace('T',' ') }} · điểm AI {{ '%g' % (sub.ai_total or 0) }}/100</span>
-    {% else %}
-      <span class="text-slate-400">— chưa chấm</span>
-    {% endif %}
-  </div>
-  {% if grade_job.get('running') %}
-    <span class="text-amber-600 font-semibold">⏳ Đang chấm... (bắt đầu {{ (grade_job.started_at or '')[:16] | replace('T',' ') }})</span>
-    <form method="post" action="/council/submission/{{ sub.id }}/reset-grading" class="ml-auto"
-          onsubmit="return confirm('Hủy phiên chấm đang chạy và đặt lại hồ sơ? Dùng khi chấm bị treo (không dừng). Sau đó có thể bấm Chấm lại.')">
-      <button class="bg-red-600 hover:bg-red-700 text-white rounded-lg px-4 py-2 font-semibold">✕ Hủy / Đặt lại chấm treo</button>
+<!-- Chấm điểm 2 vòng: mỗi vòng chấm riêng, kết quả lưu độc lập -->
+<div class="bg-white rounded-xl shadow p-4 mb-4">
+  <div class="flex items-center gap-2 flex-wrap">
+    <span class="font-semibold">Chấm điểm bằng AI theo vòng</span>
+    <span class="text-sm text-slate-500">— đang xem: <b>{{ rubric.label }}</b></span>
+    {% if grade_job.get('running') %}
+    <span class="ml-auto text-amber-600 font-semibold text-sm">⏳ Đang chấm... (bắt đầu {{ (grade_job.started_at or '')[:16] | replace('T',' ') }})</span>
+    <form method="post" action="/council/submission/{{ sub.id }}/reset-grading"
+          onsubmit="return confirm('Hủy phiên chấm đang chạy và đặt lại? Dùng khi chấm bị treo.')">
+      <button class="bg-red-600 hover:bg-red-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">✕ Hủy / Đặt lại chấm treo</button>
     </form>
     <script>setTimeout(() => location.reload(), 5000)</script>
-  {% else %}
-    <form method="post" action="/council/submission/{{ sub.id }}/grade" class="ml-auto"
-          onsubmit="return confirm('Chấm tự động hồ sơ này bằng AI theo rubric? (Không ảnh hưởng quyền sửa của nhóm SV trước hạn)')">
-      <button class="bg-orange-600 hover:bg-orange-700 text-white rounded-lg px-4 py-2 font-semibold">
-        {{ '🔄 Chấm lại' if sub.get('ai_graded') else '▶ Chấm tự động hồ sơ này' }}</button>
-    </form>
-  {% endif %}
-  {% if grade_job.get('error') %}<p class="w-full text-red-600">Lỗi chấm: {{ grade_job.error }}</p>{% endif %}
-  {% if request.query_params.get('grading') %}<p class="w-full text-emerald-700">Đã bắt đầu chấm — trang sẽ tự cập nhật.</p>{% endif %}
+    {% endif %}
+  </div>
+
+  <table class="w-full text-sm mt-3">
+    <thead><tr class="text-left text-xs text-slate-400 border-b">
+      <th class="py-1.5">Vòng đánh giá</th><th>Trạng thái</th><th class="text-center">Điểm AI</th><th class="text-right">Thao tác</th>
+    </tr></thead>
+    <tbody>
+      {% for r in round_summary %}
+      <tr class="border-b last:border-0 {{ 'bg-orange-50' if r.active }}">
+        <td class="py-2 font-medium">{{ r.label }}{% if r.active %} <span class="text-xs text-orange-600">(đang xem)</span>{% endif %}</td>
+        <td>
+          {% if r.approved %}<span class="text-emerald-700">✓ Đã phê duyệt · {{ '%g' % r.total_final }}/100</span>
+          {% elif r.graded %}<span class="text-blue-700">Đã chấm (chờ thẩm định)</span>
+          {% else %}<span class="text-slate-400">Chưa chấm</span>{% endif %}
+        </td>
+        <td class="text-center font-bold">{{ ('%g' % r.ai_total) if r.ai_total is not none else '—' }}</td>
+        <td class="text-right whitespace-nowrap">
+          {% if not r.active %}
+          <form method="post" action="/council/submission/{{ sub.id }}/vong" class="inline">
+            <input type="hidden" name="vong" value="{{ r.vong }}">
+            <button class="text-slate-600 hover:underline text-xs px-2 py-1">👁 Xem điểm</button>
+          </form>
+          {% endif %}
+          {% if not grade_job.get('running') %}
+          <form method="post" action="/council/submission/{{ sub.id }}/grade" class="inline"
+                onsubmit="return confirm('Chấm tự động {{ r.label }} bằng AI? Kết quả vòng kia được giữ nguyên.')">
+            <input type="hidden" name="vong" value="{{ r.vong }}">
+            <button class="bg-orange-600 hover:bg-orange-700 text-white rounded px-3 py-1 text-xs font-semibold">
+              {{ '🔄 Chấm lại' if r.graded else '▶ Chấm' }} {{ r.label.split(' ')[0] }}</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="text-xs text-slate-400 mt-2">Mỗi vòng chấm theo phiếu riêng và lưu độc lập — chấm vòng này KHÔNG làm mất điểm vòng kia. Bấm “Xem điểm” để xem chi tiết từng vòng ở bảng bên dưới.</p>
+  {% if grade_job.get('error') %}<p class="text-red-600 text-sm mt-1">Lỗi chấm: {{ grade_job.error }}</p>{% endif %}
+  {% if request.query_params.get('grading') %}<p class="text-emerald-700 text-sm mt-1">Đã bắt đầu chấm — trang sẽ tự cập nhật.</p>{% endif %}
+  {% if request.query_params.get('vong_set') %}<p class="text-emerald-700 text-sm mt-1">Đã chuyển sang xem vòng này.</p>{% endif %}
   {% if request.query_params.get('reset') %}<p class="w-full text-emerald-700">Đã đặt lại phiên chấm. Bấm “Chấm lại” để chấm mới.</p>{% endif %}
 </div>
 

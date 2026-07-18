@@ -4,11 +4,33 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 
 from app.config import ROLE_LECTURER, get_settings, now_vn, parse_dt
-from app.rubric import graded_parts, rubric_for
+from app.rubric import graded_parts, rubric_for, submission_vong
 from app.services import audit
 from app.services.classify import classify
 from app.services.emailer import email_reminder, email_result
 from app.services.validation import completeness, part_a_complete
+
+_EMPTY_ROUND = {
+    "ai_graded": False, "ai_total": None, "ai_graded_at": None,
+    "anomaly_flags": [], "grading_progress": {}, "part_results": {},
+}
+
+
+def apply_round_snapshot(store, submission_id: str, vong: str) -> None:
+    """Đổi vòng đánh giá đang xem: khôi phục hiển thị (điểm/cờ/review) của vòng đó.
+
+    Điểm từng tiêu chí lưu theo mã phần nên KHÔNG bị mất; hàm này chỉ nạp lại ảnh
+    chụp top-level của vòng được chọn (hoặc để trống nếu vòng đó chưa chấm)."""
+    sub = store.get("submissions", submission_id)
+    if not sub:
+        return
+    snap = (sub.get("rounds") or {}).get(vong) or _EMPTY_ROUND
+    store.patch("submissions", submission_id, {"vong": vong, **snap})
+    rev = store.get("reviews", submission_id)
+    if rev:
+        rsnap = (rev.get("rounds") or {}).get(vong)
+        if rsnap:
+            store.put("reviews", submission_id, {**rev, **rsnap, "active_vong": vong})
 
 
 # ---------- mốc thời gian ----------
@@ -215,23 +237,32 @@ def part_totals_final(store, submission_id: str) -> dict[str, float]:
 
 
 def approve_submission(store, submission_id: str, reviewer: dict) -> dict:
-    rubric = rubric_for(store, store.get("submissions", submission_id))
+    sub = store.get("submissions", submission_id)
+    vong = submission_vong(sub)
+    rubric = rubric_for(store, sub)
     totals = part_totals_final(store, submission_id)
     total = round(sum(totals.values()), 2)
     level = classify(total, rubric)
     review = store.get("reviews", submission_id) or {"submission_id": submission_id}
     before = {"status": review.get("status"), "total_final": review.get("total_final")}
-    review.update({
+    approved = {
         "status": "approved", "approved_at": now_vn().isoformat(),
         "total_final": total, "part_totals": totals,
         "classification": level["key"], "classification_label": level["label"],
-        "reviewer": reviewer["email"],
-    })
+        "reviewer": reviewer["email"], "ai_total": review.get("ai_total"),
+    }
+    review.update(approved)
+    # Lưu bản phê duyệt theo VÒNG để không mất khi phê duyệt vòng kia.
+    review_rounds = dict(review.get("rounds") or {})
+    review_rounds[vong] = {**(review_rounds.get(vong) or {}), **approved}
+    review["rounds"] = review_rounds
+    review["active_vong"] = vong
     store.put("reviews", submission_id, review)
     store.patch("submissions", submission_id, {"status": "approved", "final_total": total,
                                                "classification": level["key"]})
     audit.log(store, reviewer, "approve", f"submissions/{submission_id}",
-              before=before, after={"status": "approved", "total_final": total, "classification": level["key"]})
+              before=before, after={"status": "approved", "total_final": total,
+                                    "classification": level["key"], "vong": vong})
     return review
 
 

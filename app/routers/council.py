@@ -14,7 +14,7 @@ from app.rubric import (
 from app.services import audit
 from app.services.grading.engine import grade_submission
 from app.services.grading.graders import create_grader
-from app.services.ops import approve_submission, grade_job_stale, part_totals_final
+from app.services.ops import apply_round_snapshot, approve_submission, grade_job_stale, part_totals_final
 
 router = APIRouter(prefix="/council")
 council_dep = Depends(require_role(ROLE_COUNCIL, ROLE_ADMIN))
@@ -71,39 +71,50 @@ def detail(sid: str, request: Request, user: dict = council_dep):
         by_part.setdefault(s["part"], []).append(s)
     totals = part_totals_final(store, sid)
     appeal = store.find_one("appeals", submission_id=sid)
+    # Tóm tắt cả 2 vòng (đã chấm chưa, tổng điểm) — để không vòng nào "biến mất".
+    rounds = sub.get("rounds") or {}
+    rev_rounds = (review or {}).get("rounds") or {}
+    round_summary = [
+        {"vong": v, "label": VONG_LABELS[v],
+         "graded": bool((rounds.get(v) or {}).get("ai_graded")),
+         "ai_total": (rounds.get(v) or {}).get("ai_total"),
+         "approved": (rev_rounds.get(v) or {}).get("status") == "approved",
+         "total_final": (rev_rounds.get(v) or {}).get("total_final"),
+         "active": v == submission_vong(sub)}
+        for v in (VONG_TUYEN_CHON, VONG_NGHIEM_THU)
+    ]
     return render(request, "council/detail.html", user, sub=sub, owner=owner, rubric=rubric,
                   review=review, items=items, scores=by_part, totals=totals,
                   total_now=round(sum(totals.values()), 2), parts=graded_parts(rubric), appeal=appeal,
                   grade_job=sub.get("grade_job") or {},
-                  vong=submission_vong(sub), vong_labels=VONG_LABELS)
+                  vong=submission_vong(sub), vong_labels=VONG_LABELS, round_summary=round_summary)
 
 
 @router.post("/submission/{sid}/vong")
 def set_vong(sid: str, request: Request, vong: str = Form(...), user: dict = council_dep):
-    """Đổi vòng đánh giá của công trình (tuyển chọn thuyết minh ↔ nghiệm thu báo cáo).
+    """Đổi VÒNG đang XEM (tuyển chọn thuyết minh ↔ nghiệm thu báo cáo).
 
-    Đổi vòng sẽ áp phiếu đánh giá tương ứng; xóa checkpoint chấm cũ để chấm lại theo
-    phiếu của vòng mới (điểm đã lưu theo mã phần vẫn giữ, không mất)."""
-    from app.services.grading.engine import invalidate_grading
-
+    Chỉ nạp lại hiển thị điểm/kết quả của vòng được chọn — KHÔNG xóa điểm vòng nào
+    (điểm từng vòng lưu độc lập theo mã phần)."""
     store = request.app.state.store
     sub = store.get("submissions", sid)
     if not sub:
         raise HTTPException(404)
     if vong not in (VONG_TUYEN_CHON, VONG_NGHIEM_THU):
         raise HTTPException(400, "Vòng đánh giá không hợp lệ")
-    store.patch("submissions", sid, {"vong": vong})
-    invalidate_grading(store, sid)
-    audit.log(store, user, "set_vong", f"submissions/{sid}", note=f"Chuyển vòng đánh giá → {VONG_LABELS.get(vong, vong)}")
+    apply_round_snapshot(store, sid, vong)
+    audit.log(store, user, "set_vong", f"submissions/{sid}", note=f"Xem vòng → {VONG_LABELS.get(vong, vong)}")
     return RedirectResponse(f"/council/submission/{sid}?vong_set=1", status_code=303)
 
 
 @router.post("/submission/{sid}/grade")
-def grade_one(sid: str, request: Request, user: dict = council_dep):
-    """Chấm tự động MỘT giảng viên theo yêu cầu (Admin/Hội đồng), chạy nền.
+def grade_one(sid: str, request: Request, vong: str = Form(""), user: dict = council_dep):
+    """Chấm tự động MỘT vòng của công trình theo yêu cầu (Admin/Hội đồng), chạy nền.
 
-    - Trước hạn (hồ sơ draft/submitted): chấm thử, GIỮ trạng thái để giảng viên vẫn sửa/nộp được.
-    - Sau hạn (hồ sơ đã khóa): chấm chính thức → chuyển trạng thái 'graded' để Hội đồng phê duyệt.
+    - vong (tùy chọn): 'tuyen_chon' hoặc 'nghiem_thu' — chọn vòng để chấm; nếu bỏ trống
+      thì chấm vòng đang xem.
+    - Trước hạn (hồ sơ draft/submitted): chấm thử, GIỮ trạng thái để SV vẫn sửa/nộp được.
+    - Sau hạn (hồ sơ đã khóa): chấm chính thức → 'graded' để Hội đồng phê duyệt.
     - Hồ sơ đã phê duyệt/công bố: không chấm lại (tránh xóa kết quả đã chốt).
     """
     app = request.app
@@ -113,6 +124,10 @@ def grade_one(sid: str, request: Request, user: dict = council_dep):
         raise HTTPException(404)
     if sub.get("status") in ("approved", "published"):
         raise HTTPException(400, "Hồ sơ đã được phê duyệt/công bố — không thể chấm lại.")
+    # Chọn vòng để chấm (nếu chỉ định) — nạp lại ngữ cảnh vòng đó, không mất điểm vòng kia.
+    if vong in (VONG_TUYEN_CHON, VONG_NGHIEM_THU) and vong != submission_vong(sub):
+        apply_round_snapshot(store, sid, vong)
+        sub = store.get("submissions", sid)
     job = sub.get("grade_job") or {}
     # Đang chấm thật sự thì chặn; nhưng job 'treo' quá lâu (Cloud Run cắt CPU) thì cho chấm lại.
     if job.get("running") and not grade_job_stale(job):

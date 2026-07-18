@@ -1,5 +1,5 @@
 """Test e2e trọn luồng: kê khai → nộp → khóa → chấm (mock) → thẩm định → công bố → phản hồi."""
-from app.services.grading.engine import run_grading
+from app.services.grading.engine import grade_submission, run_grading
 from app.services.grading.graders import MockGrader
 from tests.conftest import DOCX_CT, fill_part_a, login, make_docx_bytes, upload_all_parts
 
@@ -143,6 +143,41 @@ def test_upload_multiple_files_at_once(client, store):
     assert len(items) == 2
     names = sorted(i["original_name"] for i in items)
     assert names == ["GV001_PhanI_File1.docx", "GV001_PhanI_File2.docx"]
+
+
+def test_two_rounds_graded_independently(client, store, storage):
+    """Chấm vòng thuyết minh rồi vòng báo cáo — kết quả mỗi vòng lưu độc lập, không mất."""
+    login(client, "gv001@dainam.edu.vn")
+    fill_part_a(client, ma_gv="GV001", loai="bao_cao_ung_dung")
+    for part in ("TM", "I", "II"):
+        data = make_docx_bytes(f"TL {part}", ["Nội dung chi tiết công trình."])
+        client.post(f"/lecturer/part/{part}/upload", data={"kind": "product"},
+                    files={"files": (f"GV001_Phan{part}_TL.docx", data, DOCX_CT)}, follow_redirects=False)
+    client.post("/lecturer/submit", follow_redirects=False)
+    sid = store.find_one("submissions", user_id="u-gv1")["id"]
+
+    # Chấm vòng tuyển chọn (thuyết minh) — chấm đồng bộ để test ổn định
+    store.patch("submissions", sid, {"vong": "tuyen_chon"})
+    grade_submission(store, storage, MockGrader(), sid, force=True, keep_status=True)
+    tm_total = (store.get("submissions", sid)["rounds"]["tuyen_chon"]["ai_total"])
+    assert tm_total is not None
+
+    # Chấm vòng nghiệm thu (báo cáo)
+    store.patch("submissions", sid, {"vong": "nghiem_thu"})
+    grade_submission(store, storage, MockGrader(), sid, force=True, keep_status=True)
+    rounds = store.get("submissions", sid)["rounds"]
+    # Cả hai vòng còn nguyên
+    assert rounds["tuyen_chon"]["ai_total"] == tm_total
+    assert rounds["nghiem_thu"]["ai_total"] is not None
+    # Điểm từng vòng vẫn lưu theo mã phần
+    parts = {s["part"] for s in store.find("scores", submission_id=sid)}
+    assert {"TM", "I", "II"} <= parts
+
+    # "Xem điểm" vòng tuyển chọn qua route → khôi phục hiển thị vòng đó
+    login(client, "hd@dainam.edu.vn")
+    r = client.post(f"/council/submission/{sid}/vong", data={"vong": "tuyen_chon"}, follow_redirects=False)
+    assert r.status_code == 303
+    assert store.get("submissions", sid)["ai_total"] == tm_total
 
 
 def test_bao_cao_ung_dung_grades_two_parts(client, store, storage):

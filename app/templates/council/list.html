@@ -48,12 +48,7 @@
         </td>
         <td class="px-2 py-2.5">{{ status_labels.get(r.sub.status, r.sub.status) }}</td>
         <td class="px-4 py-2.5 text-right whitespace-nowrap">
-          {% if not (r.sub.get('grade_job') or {}).get('running') %}
-          <form method="post" action="/council/submission/{{ r.sub.id }}/grade" class="inline"
-                onsubmit="return confirm('Chấm tự động hồ sơ của {{ r.user.ho_ten }}?')">
-            <button class="text-emerald-700 text-xs hover:underline">⚡ Chấm</button>
-          </form>
-          {% endif %}
+          <a href="/council/submission/{{ r.sub.id }}" class="text-emerald-700 text-xs hover:underline">⚡ Chấm</a>
           <a href="/council/submission/{{ r.sub.id }}" class="text-orange-700 font-semibold hover:underline ml-2">Thẩm định →</a>
         </td>
       </tr>

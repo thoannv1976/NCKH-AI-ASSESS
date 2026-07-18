@@ -18,7 +18,7 @@ import logging
 import statistics
 
 from app.config import now_vn
-from app.rubric import graded_parts, rubric_for
+from app.rubric import graded_parts, rubric_for, submission_vong
 from app.services.extraction import build_part_content
 from app.services.grading.graders import Grader
 
@@ -196,10 +196,12 @@ def grade_submission(store, storage, grader: Grader, submission_id: str,
     if not submission:
         raise ValueError("Không tìm thấy hồ sơ")
     original_status = submission.get("status")
+    vong = submission_vong(submission)
     rubric = rubric_for(store, submission)
     parts = graded_parts(rubric)
     progress = {} if force else (submission.get("grading_progress") or {})
-    part_results = submission.get("part_results") or {}
+    # Reset khi force để không cộng dồn điểm của vòng kia (mỗi vòng chấm độc lập).
+    part_results = {} if force else (submission.get("part_results") or {})
     all_flags: list[str] = submission.get("anomaly_flags") or [] if not force else []
     store.patch("submissions", submission_id, {"status": "grading"})
 
@@ -230,16 +232,27 @@ def grade_submission(store, storage, grader: Grader, submission_id: str,
         mandatory_reason.append("Có tiêu chí dưới mức tối thiểu hoặc dấu hiệu bất thường")
 
     final_status = original_status if keep_status else "graded"
-    store.patch("submissions", submission_id, {
-        "status": final_status, "ai_total": ai_total,
-        "ai_graded": True, "ai_graded_at": now_vn().isoformat(),
-    })
-    store.put("reviews", submission_id, {
-        "submission_id": submission_id, "status": "pending",
-        "mandatory": mandatory, "mandatory_reason": "; ".join(mandatory_reason),
-        "ai_total": ai_total, "created_at": now_vn().isoformat(),
+    now = now_vn().isoformat()
+    # Ảnh chụp kết quả của VÒNG vừa chấm — lưu riêng theo vòng để không mất khi chấm vòng kia.
+    snap = {
+        "ai_graded": True, "ai_total": ai_total, "ai_graded_at": now,
+        "anomaly_flags": all_flags, "grading_progress": progress, "part_results": part_results,
+    }
+    rounds = dict(submission.get("rounds") or {})
+    rounds[vong] = snap
+    store.patch("submissions", submission_id, {"status": final_status, "vong": vong,
+                                               "rounds": rounds, **snap})
+    review_doc = store.get("reviews", submission_id) or {"submission_id": submission_id}
+    rsnap = {
+        "status": "pending", "mandatory": mandatory, "mandatory_reason": "; ".join(mandatory_reason),
+        "ai_total": ai_total, "created_at": now,
         "approved_at": None, "total_final": None, "classification": None, "reviewer": None,
-    })
+    }
+    review_rounds = dict(review_doc.get("rounds") or {})
+    review_rounds[vong] = rsnap
+    store.put("reviews", submission_id,
+              {**review_doc, "submission_id": submission_id, "active_vong": vong,
+               "rounds": review_rounds, **rsnap})
     return {"submission_id": submission_id, "ai_total": ai_total, "mandatory": mandatory}
 
 

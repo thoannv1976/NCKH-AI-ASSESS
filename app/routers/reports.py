@@ -36,17 +36,19 @@ def scores_rows(store, khoa: str = "") -> list[dict]:
             continue
         if khoa and (u.get("khoa") or "") != khoa:
             continue
-        sub_rubric = rubric_for(store, s)
+        sub_rubric = rubric_for(store, s)  # vòng đang xem của hồ sơ
+        active_parts = graded_parts(sub_rubric)
         part_max = {p: pd["max_score"] for p, pd in sub_rubric.get("parts", {}).items()}
         scores = store.find("scores", submission_id=s["id"])
-        has = bool(scores)
         part_sum: dict[str, float] = defaultdict(float)
         adjusted = False
         for sc in scores:
             part_sum[sc["part"]] += sc.get("final_score") or 0
             if sc.get("council_score") is not None:
                 adjusted = True
-        part_totals = {p: round(min(v, part_max.get(p, v)), 2) for p, v in part_sum.items()}
+        # CHỈ tính điểm của vòng đang xem — tránh cộng dồn điểm cả 2 vòng (>100).
+        has = any(sc["part"] in active_parts for sc in scores)
+        part_totals = {p: round(min(part_sum.get(p, 0), part_max.get(p, 0)), 2) for p in active_parts}
         totals = {p: part_totals.get(p, "") for p in cols}  # map về cột hiển thị
         total = round(sum(part_totals.values()), 2) if has else None
         review = reviews.get(s["id"]) or {}
