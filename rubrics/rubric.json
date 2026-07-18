@@ -1,5 +1,5 @@
 {
-  "version": "FTU-NCKH-2026.1",
+  "version": "FTU-NCKH-2026.2",
   "default_type": "thuyet_minh",
   "types": {
     "thuyet_minh": {
@@ -116,9 +116,9 @@
             {
               "id": "TM8",
               "max": 10,
-              "min": 3,
+              "min": 5,
               "name": "Địa chỉ ứng dụng",
-              "guide": "Gồm: (8.1) Chỉ rõ địa chỉ ứng dụng nhưng KHÔNG có cam kết của doanh nghiệp/tổ chức: 3–5 điểm; (8.2) Chỉ rõ địa chỉ ứng dụng và CÓ cam kết của doanh nghiệp/tổ chức: 5–10 điểm. Nếu có cam kết hợp tác/sử dụng kết quả nghiên cứu thì thuộc diện ưu tiên tuyển chọn.",
+              "guide": "Điểm tối thiểu 5/10. Gồm: (8.1) Chỉ rõ địa chỉ ứng dụng nhưng KHÔNG có cam kết của doanh nghiệp/tổ chức: 3–5 điểm; (8.2) Chỉ rõ địa chỉ ứng dụng và CÓ cam kết của doanh nghiệp/tổ chức: 5–10 điểm. Nếu có cam kết hợp tác/sử dụng kết quả nghiên cứu thì thuộc diện ưu tiên tuyển chọn.",
               "levels": {
                 "xuat_sac": "Địa chỉ ứng dụng rõ, có cam kết hợp tác của doanh nghiệp/tổ chức (8–10)",
                 "dat": "Có địa chỉ ứng dụng và cam kết ở mức cơ bản (5–7)",
@@ -142,9 +142,9 @@
             {
               "id": "TM10",
               "max": 10,
-              "min": 0,
+              "min": 5,
               "name": "Kinh phí thực hiện chuyên đề",
-              "guide": "Gồm: (10.1) Kinh phí từ Nhà trường: 0 điểm; (10.2) Kinh phí tài trợ từ doanh nghiệp/tổ chức: 5–10 điểm. Chuyên đề có cam kết tài trợ kinh phí một phần hoặc toàn phần thuộc diện ưu tiên tuyển chọn (cộng tối đa 10% tổng điểm).",
+              "guide": "Điểm tối thiểu 5/10. Gồm: (10.1) Kinh phí từ Nhà trường: 0 điểm; (10.2) Kinh phí tài trợ từ doanh nghiệp/tổ chức: 5–10 điểm. Chuyên đề có cam kết tài trợ kinh phí một phần hoặc toàn phần thuộc diện ưu tiên tuyển chọn (cộng tối đa 10% tổng điểm).",
               "levels": {
                 "xuat_sac": "Có cam kết tài trợ kinh phí rõ ràng của doanh nghiệp/tổ chức (8–10)",
                 "dat": "Có tài trợ một phần từ doanh nghiệp/tổ chức (5–7)",
