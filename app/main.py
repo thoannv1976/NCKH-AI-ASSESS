@@ -20,6 +20,13 @@ from app.storage import create_storage
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 
 
+def _app_version() -> str:
+    try:
+        return (get_settings().base_dir / "VERSION").read_text(encoding="utf-8").strip()
+    except Exception:  # noqa: BLE001 — thiếu tệp VERSION không được làm sập app
+        return "unknown"
+
+
 def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(title=settings.app_title, docs_url=None, redoc_url=None)
@@ -97,8 +104,11 @@ def create_app() -> FastAPI:
         return RedirectResponse(dest)
 
     @app.get("/healthz")
+    @app.get("/health")
+    @app.get("/healthz/")
     def healthz():
-        return {"ok": True, "time": now_vn().isoformat()}
+        return {"ok": True, "app": "FTU NCKH-Assess", "version": _app_version(),
+                "time": now_vn().isoformat()}
 
     @app.exception_handler(Exception)
     async def err_handler(request: Request, exc: Exception):
