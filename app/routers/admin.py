@@ -276,32 +276,120 @@ def config_page(request: Request, user: dict = admin_dep):
                   ai_cfg=get_ai_config(store), ai_stats=get_stats(store))
 
 
+def _rubric_tag(store, rubric_type: str) -> str:
+    """Hậu tố tên tệp theo loại công trình (an toàn cho tên tệp)."""
+    from app.rubric import resolve_type
+    key = resolve_type(store, rubric_type)
+    return key or "rubric"
+
+
 @router.get("/rubric.xlsx")
-def rubric_xlsx(request: Request, user: dict = admin_dep):
+def rubric_xlsx(request: Request, type: str = "", user: dict = admin_dep):
     from fastapi.responses import Response
 
     from app.services.rubric_export import rubric_to_xlsx
 
-    data = rubric_to_xlsx(get_rubric(request.app.state.store))
+    store = request.app.state.store
+    data = rubric_to_xlsx(get_rubric(store, type or None))
+    tag = _rubric_tag(store, type)
     return Response(
         data, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition":
-                 f"attachment; filename={get_settings().org_short}-Rubric-HoiDong-{now_vn():%Y%m%d}.xlsx"},
+                 f"attachment; filename={get_settings().org_short}-Rubric-{tag}-{now_vn():%Y%m%d}.xlsx"},
     )
 
 
 @router.get("/rubric.docx")
-def rubric_docx(request: Request, user: dict = admin_dep):
+def rubric_docx(request: Request, type: str = "", user: dict = admin_dep):
     from fastapi.responses import Response
 
     from app.services.rubric_export import rubric_to_docx
 
-    data = rubric_to_docx(get_rubric(request.app.state.store))
+    store = request.app.state.store
+    data = rubric_to_docx(get_rubric(store, type or None))
+    tag = _rubric_tag(store, type)
     return Response(
         data, media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         headers={"Content-Disposition":
-                 f"attachment; filename={get_settings().org_short}-Rubric-HoiDong-{now_vn():%Y%m%d}.docx"},
+                 f"attachment; filename={get_settings().org_short}-Rubric-{tag}-{now_vn():%Y%m%d}.docx"},
     )
+
+
+@router.get("/rubric.json")
+def rubric_json(request: Request, user: dict = admin_dep):
+    """Tải TOÀN BỘ bộ tiêu chí (cả 3 loại) dạng JSON gốc — để sửa ngoài rồi upload lại."""
+    import json
+
+    from fastapi.responses import Response
+
+    from app.rubric import _full
+
+    store = request.app.state.store
+    doc = {k: v for k, v in _full(store).items() if k != "id"}
+    data = json.dumps(doc, ensure_ascii=False, indent=2).encode("utf-8")
+    return Response(
+        data, media_type="application/json",
+        headers={"Content-Disposition":
+                 f"attachment; filename={get_settings().org_short}-rubric-{now_vn():%Y%m%d}.json"},
+    )
+
+
+def _validate_rubric(data) -> str:
+    """Kiểm tra cấu trúc rubric upload. Trả về chuỗi lỗi ('' nếu hợp lệ)."""
+    if not isinstance(data, dict):
+        return "Tệp không phải đối tượng JSON hợp lệ."
+    types = data.get("types")
+    if not isinstance(types, dict) or not types:
+        return "Thiếu khóa 'types' (danh sách các loại công trình)."
+    for key, t in types.items():
+        parts = (t or {}).get("parts")
+        if not isinstance(parts, dict) or not parts:
+            return f"Loại '{key}' thiếu 'parts'."
+        graded = [p for p, d in parts.items() if isinstance(d, dict) and d.get("graded")]
+        if not graded:
+            return f"Loại '{key}' không có phần nào được chấm (graded=true)."
+        for p in graded:
+            crits = parts[p].get("criteria")
+            if not isinstance(crits, list) or not crits:
+                return f"Loại '{key}', phần '{p}' thiếu danh sách 'criteria'."
+            for c in crits:
+                if not isinstance(c, dict) or "id" not in c or "max" not in c:
+                    return f"Loại '{key}', phần '{p}': tiêu chí thiếu 'id' hoặc 'max'."
+        if not isinstance(t.get("classification"), list) or not t["classification"]:
+            return f"Loại '{key}' thiếu 'classification' (bảng xếp loại)."
+    if data.get("default_type") and data["default_type"] not in types:
+        return "default_type không nằm trong danh sách 'types'."
+    return ""
+
+
+@router.post("/rubric/upload")
+async def rubric_upload(request: Request, file: UploadFile = None, user: dict = admin_dep):
+    """Upload bộ tiêu chí mới (tệp JSON gồm cả 3 loại) — ghi đè config/rubric.
+
+    An toàn: chỉ thay bộ tiêu chí chấm điểm; KHÔNG đụng hồ sơ/điểm/người dùng.
+    """
+    import json
+    from urllib.parse import quote
+
+    store = request.app.state.store
+    if file is None or not file.filename:
+        return RedirectResponse("/admin/config?rubric_msg=" + quote("Chưa chọn tệp rubric (.json)."), status_code=303)
+    raw = (await file.read()).decode("utf-8-sig", errors="replace")
+    try:
+        data = json.loads(raw)
+    except Exception as exc:  # noqa: BLE001 — báo lỗi cú pháp JSON cho admin
+        return RedirectResponse("/admin/config?rubric_msg=" + quote(f"Tệp JSON không hợp lệ: {exc}"), status_code=303)
+    err = _validate_rubric(data)
+    if err:
+        return RedirectResponse("/admin/config?rubric_msg=" + quote("Rubric không hợp lệ: " + err), status_code=303)
+    old = store.get("config", "rubric") or {}
+    store.put("config", "rubric", {"id": "rubric", **data})
+    audit.log(store, user, "upload_rubric", "config/rubric",
+              before={"version": old.get("version")}, after={"version": data.get("version")},
+              note=f"Upload rubric {old.get('version') or '(chưa có)'} → {data.get('version') or '(không rõ)'}")
+    msg = (f"Đã cập nhật bộ tiêu chí từ tệp: {old.get('version') or '(chưa có)'} → "
+           f"{data.get('version') or '(không rõ)'}. Áp dụng cho các lần chấm sau.")
+    return RedirectResponse("/admin/config?rubric_msg=" + quote(msg), status_code=303)
 
 
 @router.post("/rubric/reload")
